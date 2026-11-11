@@ -80,13 +80,17 @@ export function processPosterUrl(
  * @param m3u8Url m3u8播放列表的URL
  * @returns Promise<{quality: string, loadSpeed: string, pingTime: number}> 视频质量等级和网络信息
  */
-export async function getVideoResolutionFromM3u8(m3u8Url: string): Promise<{
+export async function getVideoResolutionFromM3u8(
+  m3u8Url: string,
+  signal?: AbortSignal
+): Promise<{
   quality: string; // 如720p、1080p等
   loadSpeed: string; // 自动转换为KB/s或MB/s
   pingTime: number; // 网络延迟（毫秒）
 }> {
   try {
     const { default: Hls } = await import('hls.js');
+    if (signal?.aborted) throw new Error('测速已取消');
     // 直接使用m3u8 URL作为视频源，避免CORS问题
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
@@ -98,7 +102,7 @@ export async function getVideoResolutionFromM3u8(m3u8Url: string): Promise<{
       let pingTime = 0;
 
       // 测量ping时间（使用m3u8 URL）
-      fetch(m3u8Url, { method: 'HEAD', mode: 'no-cors' })
+      fetch(m3u8Url, { method: 'HEAD', mode: 'no-cors', signal })
         .then(() => {
           pingTime = performance.now() - pingStart;
         })
@@ -114,6 +118,7 @@ export async function getVideoResolutionFromM3u8(m3u8Url: string): Promise<{
       const cleanup = () => {
         if (released) return;
         released = true;
+        signal?.removeEventListener('abort', onAbort);
         try {
           hls.destroy();
         } catch (e) {
@@ -127,6 +132,13 @@ export async function getVideoResolutionFromM3u8(m3u8Url: string): Promise<{
         cleanup();
         reject(new Error('Timeout loading video metadata'));
       }, 4000);
+
+      const onAbort = () => {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error('测速已取消'));
+      };
+      signal?.addEventListener('abort', onAbort, { once: true });
 
       video.onerror = () => {
         clearTimeout(timeout);

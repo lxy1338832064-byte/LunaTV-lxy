@@ -98,7 +98,8 @@ export default function FeaturedHero({
                   )}&year=${encodeURIComponent(selected.year)}&stype=${
                     selected.kind
                   }`,
-                  selected.title
+                  selected.title,
+                  processPosterUrl(selected.poster)
                 )
               }
               className='inline-flex items-center gap-2 rounded-md bg-green-500 px-4 py-2.5 text-xs font-semibold sm:px-6 sm:text-sm text-gray-950 hover:bg-green-400'

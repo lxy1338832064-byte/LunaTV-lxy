@@ -262,7 +262,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
           'live_',
           ''
         )}&id=${actualId.replace('live_', '')}`;
-        navigate(url, actualTitle);
+        navigate(url, actualTitle, processPosterUrl(actualPoster));
       } else if (
         from === 'douban' ||
         (isAggregate && !actualSource && !actualId)
@@ -274,7 +274,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }`;
-        navigate(url, actualTitle);
+        navigate(url, actualTitle, processPosterUrl(actualPoster));
       } else if (actualSource && actualId) {
         const url = `/play?source=${actualSource}&id=${actualId}&title=${encodeURIComponent(
           actualTitle
@@ -283,7 +283,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }${actualSearchType ? `&stype=${actualSearchType}` : ''}`;
-        navigate(url, actualTitle);
+        navigate(url, actualTitle, processPosterUrl(actualPoster));
       }
     }, [
       origin,
