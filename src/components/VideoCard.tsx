@@ -53,6 +53,7 @@ export interface VideoCardProps {
   year?: string;
   from: 'playrecord' | 'favorite' | 'search' | 'douban';
   currentEpisode?: number;
+  resumeTime?: number;
   douban_id?: number;
   onDelete?: () => void;
   rate?: string;
@@ -85,6 +86,7 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       year,
       from,
       currentEpisode,
+      resumeTime,
       douban_id,
       onDelete,
       rate,
@@ -262,7 +264,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
           'live_',
           ''
         )}&id=${actualId.replace('live_', '')}`;
-        navigate(url, actualTitle, processPosterUrl(actualPoster));
+        navigate(
+          from === 'playrecord'
+            ? `${url}&resumeEpisode=${currentEpisode || 1}&resumeTime=${
+                resumeTime || 0
+              }`
+            : url,
+          actualTitle,
+          processPosterUrl(actualPoster)
+        );
       } else if (
         from === 'douban' ||
         (isAggregate && !actualSource && !actualId)
@@ -274,7 +284,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }`;
-        navigate(url, actualTitle, processPosterUrl(actualPoster));
+        navigate(
+          from === 'playrecord'
+            ? `${url}&resumeEpisode=${currentEpisode || 1}&resumeTime=${
+                resumeTime || 0
+              }`
+            : url,
+          actualTitle,
+          processPosterUrl(actualPoster)
+        );
       } else if (actualSource && actualId) {
         const url = `/play?source=${actualSource}&id=${actualId}&title=${encodeURIComponent(
           actualTitle
@@ -283,7 +301,15 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
         }${
           actualQuery ? `&stitle=${encodeURIComponent(actualQuery.trim())}` : ''
         }${actualSearchType ? `&stype=${actualSearchType}` : ''}`;
-        navigate(url, actualTitle, processPosterUrl(actualPoster));
+        navigate(
+          from === 'playrecord'
+            ? `${url}&resumeEpisode=${currentEpisode || 1}&resumeTime=${
+                resumeTime || 0
+              }`
+            : url,
+          actualTitle,
+          processPosterUrl(actualPoster)
+        );
       }
     }, [
       origin,
@@ -296,6 +322,8 @@ const VideoCard = forwardRef<VideoCardHandle, VideoCardProps>(
       isAggregate,
       actualQuery,
       actualSearchType,
+      currentEpisode,
+      resumeTime,
     ]);
 
     // 新标签页播放处理函数

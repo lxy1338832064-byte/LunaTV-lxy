@@ -22,6 +22,7 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { enrichPlaybackDetail } from '@/lib/playback-detail';
+import { readResume } from '@/lib/playback-node';
 import { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
@@ -121,7 +122,9 @@ function PlayPageClient() {
     needPreferRef.current = needPrefer;
   }, [needPrefer]);
   // 集数相关
-  const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
+  const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(
+    () => (readResume(searchParams)?.episode || 1) - 1
+  );
 
   const currentSourceRef = useRef(currentSource);
   const currentIdRef = useRef(currentId);
@@ -154,7 +157,9 @@ function PlayPageClient() {
   const totalEpisodes = detail?.episodes?.length || 0;
 
   // 用于记录是否需要在播放器 ready 后跳转到指定进度
-  const resumeTimeRef = useRef<number | null>(null);
+  const resumeTimeRef = useRef<number | null>(
+    readResume(searchParams)?.time ?? null
+  );
   // 上次使用的音量，默认 0.7
   const lastVolumeRef = useRef<number>(0.7);
   // 上次使用的播放速率，默认 1.0
@@ -856,6 +861,8 @@ function PlayPageClient() {
       newUrl.searchParams.set('year', detailData.year);
       newUrl.searchParams.set('title', detailData.title);
       newUrl.searchParams.delete('prefer');
+      newUrl.searchParams.delete('resumeEpisode');
+      newUrl.searchParams.delete('resumeTime');
       window.history.replaceState({}, '', newUrl.toString());
 
       setLoadingStage('ready');
@@ -871,6 +878,7 @@ function PlayPageClient() {
   useEffect(() => {
     // 仅在初次挂载时检查播放记录
     const initFromHistory = async () => {
+      if (readResume(searchParams)) return;
       if (!currentSource || !currentId) return;
 
       try {

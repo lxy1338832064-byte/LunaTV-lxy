@@ -16,3 +16,19 @@ export function selectedNodeUrl(
   url.searchParams.delete('prefer');
   return url.pathname + url.search;
 }
+
+export function readResume(params: {
+  get(key: string): string | null;
+}): { episode: number; time: number } | null {
+  const episode = Number(params.get('resumeEpisode'));
+  const time = Number(params.get('resumeTime'));
+  if (
+    !Number.isSafeInteger(episode) ||
+    episode < 1 ||
+    episode > 10000 ||
+    !Number.isFinite(time) ||
+    time < 0
+  )
+    return null;
+  return { episode, time };
+}

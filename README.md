@@ -4,6 +4,8 @@
 
 本分支包含深色门户首页、竖版海报、移动端快捷面板、用户最近观看与 Cloudflare 加速优化。
 
+内置 17 个视频源、14 个分类，默认配置见 [default-catalog.json](src/lib/default-catalog.json)。新部署自动初始化；已有数据库配置不会被覆盖，如需更新，可在后台配置文件中导入该 JSON。
+
 - 部署与缓存配置：[Cloudflare 免费版提速说明](docs/cloudflare-performance.md)
 - 本仓库镜像：`ghcr.io/lxy1338832064-byte/lunatv-lxy:latest`（仓库 Actions 构建成功后可用）
 - 本地环境变量、账号密码、Redis 数据和临时截图均不随源码提交。

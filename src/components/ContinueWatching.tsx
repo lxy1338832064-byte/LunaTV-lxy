@@ -166,6 +166,7 @@ export default function ContinueWatching({
                   progress={getProgress(record)}
                   episodes={record.total_episodes}
                   currentEpisode={record.index}
+                  resumeTime={record.play_time}
                   query={record.search_title}
                   from='playrecord'
                   type={record.total_episodes > 1 ? 'tv' : ''}

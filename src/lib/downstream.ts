@@ -278,17 +278,20 @@ export function getDetailFromApi(
     apiSite.name,
     id,
   ]);
-  return detailCache.get(key, () => getDetailFromApiUncached(apiSite, id));
+  return detailCache.get(key, async () => {
+    try {
+      return await getDetailFromApiUncached(apiSite, id);
+    } catch (error) {
+      if (apiSite.detail) return handleSpecialSourceDetail(id, apiSite);
+      throw error;
+    }
+  });
 }
 
 async function getDetailFromApiUncached(
   apiSite: ApiSite,
   id: string
 ): Promise<SearchResult> {
-  if (apiSite.detail) {
-    return handleSpecialSourceDetail(id, apiSite);
-  }
-
   const detailUrl = `${apiSite.api}${API_CONFIG.detail.path}${id}`;
 
   const signal = AbortSignal.timeout(10000);

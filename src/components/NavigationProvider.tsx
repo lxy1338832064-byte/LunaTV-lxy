@@ -13,6 +13,8 @@ import {
   useTransition,
 } from 'react';
 
+import { readResume } from '@/lib/playback-node';
+
 const PlaybackNodePicker = dynamic(() => import('./PlaybackNodePicker'), {
   loading: () => (
     <p role='status' className='py-6 text-gray-400'>
@@ -70,6 +72,9 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
     startTransition(() => router.push(url));
   };
 
+  const resume = selection
+    ? readResume(new URL(selection.url, 'http://localhost').searchParams)
+    : null;
   return (
     <NavigationContext.Provider value={navigate}>
       {children}
@@ -86,7 +91,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
             aria-modal='true'
             aria-labelledby='node-dialog-title'
             tabIndex={-1}
-            className='max-h-[90dvh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#181b20] p-5 shadow-2xl outline-none'
+            className='flex max-h-[90dvh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#181b20] p-5 shadow-2xl outline-none'
             onKeyDown={(event) => {
               if (event.key === 'Escape') setSelection(null);
               if (event.key === 'Tab') {
@@ -115,7 +120,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
               }
             }}
           >
-            <div className='mb-5 flex items-start gap-4 border-b border-white/10 pb-5'>
+            <div className='mb-5 flex shrink-0 items-start gap-4 border-b border-white/10 pb-5'>
               {selection.poster && (
                 <Image
                   width={64}
@@ -136,7 +141,15 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
                   {new URL(selection.url, 'http://localhost').searchParams.get(
                     'year'
                   )}{' '}
-                  · 选择测速成功的节点开始播放
+                  ·{' '}
+                  {resume
+                    ? `从第 ${resume.episode} 集 ${Math.floor(
+                        resume.time / 60
+                      )}:${String(Math.floor(resume.time % 60)).padStart(
+                        2,
+                        '0'
+                      )} 继续`
+                    : '选择测速成功的节点开始播放'}
                 </p>
               </div>
               <button
@@ -147,14 +160,16 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
                 ×
               </button>
             </div>
-            <PlaybackNodePicker
-              url={selection.url}
-              onSelect={(url) => {
-                setSelection(null);
-                setTitle(selection.title);
-                startTransition(() => router.push(url));
-              }}
-            />
+            <div className='min-h-0 overflow-y-auto overscroll-contain pr-1'>
+              <PlaybackNodePicker
+                url={selection.url}
+                onSelect={(url) => {
+                  setSelection(null);
+                  setTitle(selection.title);
+                  startTransition(() => router.push(url));
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
