@@ -8,6 +8,7 @@ import {
   ExternalLink,
   KeyRound,
   LogOut,
+  Radio,
   Settings,
   Shield,
   User,
@@ -21,6 +22,8 @@ import { createPortal } from 'react-dom';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
+
+const DefaultSourceDialog = dynamic(() => import('./DefaultSourceDialog'));
 
 const VersionPanel = dynamic(() =>
   import('./VersionPanel').then((module) => module.VersionPanel)
@@ -38,6 +41,7 @@ export default function UserMenuContent({
 }) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(initialOpen);
+  const [isDefaultSourceOpen, setIsDefaultSourceOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
@@ -543,6 +547,16 @@ export default function UserMenuContent({
 
         {/* 菜单项 */}
         <div className='py-1'>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setIsDefaultSourceOpen(true);
+            }}
+            className='flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
+          >
+            <Radio className='h-4 w-4 text-green-500' />
+            <span className='font-medium'>默认播放源</span>
+          </button>
           {/* 设置按钮 */}
           <button
             onClick={handleSettings}
@@ -1156,6 +1170,10 @@ export default function UserMenuContent({
       {isChangePasswordOpen &&
         mounted &&
         createPortal(changePasswordPanel, document.body)}
+
+      {isDefaultSourceOpen && (
+        <DefaultSourceDialog onClose={() => setIsDefaultSourceOpen(false)} />
+      )}
 
       {/* 版本面板 */}
       {isVersionPanelOpen && (

@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 
+import { getDefaultSource, saveDefaultSource } from '@/lib/default-source';
 import { measurePlaybackNode } from '@/lib/playback-probe-cache';
 import type { SearchResult } from '@/lib/types';
 
@@ -26,9 +27,19 @@ const sources = ['a', 'b', 'c', 'd'].map(
       ),
     } as SearchResult)
 );
-afterEach(() => jest.clearAllMocks());
+beforeEach(() =>
+  (measurePlaybackNode as jest.Mock).mockResolvedValue({
+    loadSpeed: '1 MB/s',
+    quality: '1080p',
+    pingTime: 10,
+  })
+);
+afterEach(() => {
+  localStorage.clear();
+  jest.clearAllMocks();
+});
 
-test('episodes and sources are visible together, with existing selection callbacks preserved', () => {
+test('episodes and sources are visible together, with existing selection callbacks preserved', async () => {
   const change = jest.fn(),
     sourceChange = jest.fn();
   render(
@@ -50,11 +61,11 @@ test('episodes and sources are visible together, with existing selection callbac
   expect(change).toHaveBeenCalledWith(2);
   fireEvent.click(screen.getByRole('button', { name: /源b/ }));
   expect(sourceChange).toHaveBeenCalledWith('b', 'b', '测试影片');
-  expect(measurePlaybackNode).not.toHaveBeenCalled();
+  await waitFor(() => expect(measurePlaybackNode).toHaveBeenCalledTimes(4));
   expect(sources.map((source) => source.id)).toEqual(['a', 'b', 'c', 'd']);
 });
 
-test('on-demand probes use the current episode, stay bounded and abort on episode change', async () => {
+test('automatic probes use the current episode, stay bounded and abort on episode change', async () => {
   const finish: Array<(result: unknown) => void> = [];
   (measurePlaybackNode as jest.Mock).mockImplementation(
     () => new Promise((resolve) => finish.push(resolve))
@@ -67,7 +78,6 @@ test('on-demand probes use the current episode, stay bounded and abort on episod
       availableSources={sources}
     />
   );
-  fireEvent.click(screen.getByRole('button', { name: '测速' }));
   await waitFor(() => expect(measurePlaybackNode).toHaveBeenCalledTimes(3));
   expect(
     (measurePlaybackNode as jest.Mock).mock.calls.map((call) => call[0])
@@ -84,10 +94,72 @@ test('on-demand probes use the current episode, stay bounded and abort on episod
   );
   expect(signal.aborted).toBe(true);
   await act(async () =>
-    finish.forEach((resolve) =>
-      resolve({ loadSpeed: '99 MB/s', quality: '1080p', pingTime: 1 })
-    )
+    finish
+      .slice(0, 3)
+      .forEach((resolve) =>
+        resolve({ loadSpeed: '99 MB/s', quality: '1080p', pingTime: 1 })
+      )
   );
-  expect(measurePlaybackNode).toHaveBeenCalledTimes(3);
+  expect(measurePlaybackNode).toHaveBeenCalledTimes(6);
   expect(screen.queryByText(/99 MB/)).not.toBeInTheDocument();
+});
+
+test('automatic measurements run once per stable source list and manual refresh forces fresh measurements', async () => {
+  const view = render(
+    <EpisodeSelector
+      totalEpisodes={3}
+      episodes_titles={[]}
+      value={1}
+      availableSources={sources}
+    />
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: '重新测速' })).toBeEnabled()
+  );
+  expect(measurePlaybackNode).toHaveBeenCalledTimes(4);
+  expect((measurePlaybackNode as jest.Mock).mock.calls[0][2]).toBe(false);
+  view.rerender(
+    <EpisodeSelector
+      totalEpisodes={3}
+      episodes_titles={[]}
+      value={1}
+      availableSources={[...sources]}
+    />
+  );
+  expect(measurePlaybackNode).toHaveBeenCalledTimes(4);
+  fireEvent.click(screen.getByRole('button', { name: '重新测速' }));
+  await waitFor(() => expect(measurePlaybackNode).toHaveBeenCalledTimes(8));
+  expect((measurePlaybackNode as jest.Mock).mock.calls[4][2]).toBe(true);
+});
+
+test('all sources remain visible alongside a default tag, and temporary switching does not modify it', async () => {
+  saveDefaultSource({ key: 'b', name: '源b' });
+  const change = jest.fn();
+  render(
+    <EpisodeSelector
+      totalEpisodes={3}
+      episodes_titles={[]}
+      value={1}
+      currentSource='a'
+      currentId='a'
+      availableSources={sources}
+      onSourceChange={change}
+    />
+  );
+  const defaultCard = screen.getByRole('button', { name: /源b.*默认/ });
+  expect(defaultCard).toBeVisible();
+  expect(screen.getByRole('button', { name: /源a.*当前/ })).toBeVisible();
+  expect(screen.getByRole('button', { name: /源c/ })).toBeVisible();
+  expect(screen.getByRole('button', { name: /源d/ })).toBeVisible();
+  fireEvent.click(screen.getByRole('button', { name: /源c/ }));
+  expect(change).toHaveBeenCalledWith('c', 'c', '测试影片');
+  expect(getDefaultSource()?.key).toBe('b');
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: '重新测速' })).toBeEnabled()
+  );
+  act(() => saveDefaultSource({ key: 'd', name: '源d' }));
+  expect(screen.getByRole('button', { name: /源d.*默认/ })).toBeVisible();
+  expect(screen.getByRole('button', { name: /源b/ })).not.toHaveTextContent(
+    '默认'
+  );
 });

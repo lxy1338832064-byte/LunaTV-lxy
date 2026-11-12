@@ -13,6 +13,7 @@ import {
   useTransition,
 } from 'react';
 
+import { getDefaultSource, resolveDefaultPlayback } from '@/lib/default-source';
 import {
   canResumeDirectly,
   readResume,
@@ -31,11 +32,21 @@ const NavigationContext = createContext<
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const lookup = useRef<AbortController | null>(null);
+  const [resolving, setResolving] = useState(false);
+  useEffect(
+    () => () => {
+      lookup.current?.abort();
+      lookup.current = null;
+    },
+    []
+  );
   const [pending, startTransition] = useTransition();
   const [selection, setSelection] = useState<{
     url: string;
     title: string;
     poster?: string;
+    notice?: string;
   } | null>(null);
   const dialog = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -53,39 +64,85 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const [slow, setSlow] = useState(false);
   useEffect(() => {
     setSlow(false);
-    if (!pending) return;
+    if (!pending && !resolving) return;
     const timer = setTimeout(() => setSlow(true), 8000);
     return () => clearTimeout(timer);
-  }, [pending]);
+  }, [pending, resolving]);
 
+  const commitNavigation = (url: string, label: string) => {
+    setTitle(label);
+    if (window.location.pathname === '/play' && url.startsWith('/play?'))
+      window.location.assign(url);
+    else startTransition(() => router.push(url));
+  };
   const navigate = (url: string, label = '', poster?: string) => {
-    if (url.startsWith('/play?')) {
-      if (canResumeDirectly(url)) {
-        const params = new URL(url, window.location.origin).searchParams;
-        setTitle(label);
-        startTransition(() =>
-          router.push(
-            selectedNodeUrl(
-              url,
-              params.get('source') || '',
-              params.get('id') || ''
-            )
-          )
-        );
-        return;
-      }
-      setSelection({
-        url,
-        title:
-          label ||
-          new URL(url, window.location.origin).searchParams.get('title') ||
-          '影片',
-        poster,
-      });
+    lookup.current?.abort();
+    lookup.current = null;
+    setResolving(false);
+    setSelection(null);
+    if (!url.startsWith('/play?')) {
+      commitNavigation(url, label);
       return;
     }
-    setTitle(label);
-    startTransition(() => router.push(url));
+    const params = new URL(url, window.location.origin).searchParams;
+    const movieTitle = label || params.get('title') || '影片';
+    const preferred = getDefaultSource();
+    const openNodes = (notice?: string) =>
+      setSelection({
+        url,
+        title: movieTitle,
+        poster,
+        notice: [
+          notice,
+          preferred
+            ? `临时换源仅对当前影片生效，不会修改默认源「${preferred.name}」。`
+            : '临时选择不会设置或修改默认源，可在头像菜单中设置。',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      });
+    if (canResumeDirectly(url)) {
+      commitNavigation(
+        selectedNodeUrl(
+          url,
+          params.get('source') || '',
+          params.get('id') || ''
+        ),
+        movieTitle
+      );
+      return;
+    }
+    if (params.get('chooseNode') === '1' || !preferred) {
+      openNodes(
+        params.get('fallbackReason') === 'playback'
+          ? '当前播放源加载异常，请选择其他播放源。'
+          : undefined
+      );
+      return;
+    }
+    const request = new AbortController();
+    lookup.current = request;
+    const timer = setTimeout(() => request.abort(), 12000);
+    setTitle(`${movieTitle} · 正在使用${preferred.name}`);
+    setResolving(true);
+    void resolveDefaultPlayback(url, preferred, request.signal)
+      .then((target) => {
+        if (lookup.current === request && !request.signal.aborted)
+          commitNavigation(target, movieTitle);
+      })
+      .catch(() => {
+        if (lookup.current === request)
+          openNodes(
+            `默认源「${preferred.name}」未找到影片或暂时无法连接，请选择其他播放源。`
+          );
+      })
+      .finally(() => {
+        clearTimeout(timer);
+        if (lookup.current === request) {
+          lookup.current = null;
+          setResolving(false);
+        }
+      });
   };
 
   const resume = selection
@@ -176,6 +233,14 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
                 ×
               </button>
             </div>
+            {selection.notice && (
+              <p
+                role='status'
+                className='mb-3 shrink-0 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200'
+              >
+                {selection.notice}
+              </p>
+            )}
             <div className='min-h-0 overflow-y-auto overscroll-contain pr-1'>
               <PlaybackNodePicker
                 url={selection.url}
@@ -193,7 +258,7 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       )}
-      {pending && (
+      {(pending || resolving) && (
         <div
           role='status'
           aria-live='polite'

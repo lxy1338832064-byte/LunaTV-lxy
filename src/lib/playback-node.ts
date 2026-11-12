@@ -15,6 +15,8 @@ export function selectedNodeUrl(
   url.searchParams.set('id', id);
   url.searchParams.delete('prefer');
   url.searchParams.delete('chooseNode');
+  url.searchParams.delete('usingDefault');
+  url.searchParams.delete('fallbackReason');
   return url.pathname + url.search;
 }
 

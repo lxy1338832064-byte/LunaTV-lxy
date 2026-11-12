@@ -24,9 +24,15 @@ export async function GET(request: NextRequest) {
       { results: [] },
       {
         headers: {
-          'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
-          'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
+          'Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
+          'CDN-Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, s-maxage=${cacheTime}`,
+          'Vercel-CDN-Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, s-maxage=${cacheTime}`,
           'Netlify-Vary': 'query',
         },
       }
@@ -34,7 +40,11 @@ export async function GET(request: NextRequest) {
   }
 
   const config = await getConfig();
-  const apiSites = await getAvailableApiSites(authInfo.username);
+  const requestedSource = searchParams.get('resourceId');
+  const availableSites = await getAvailableApiSites(authInfo.username);
+  const apiSites = requestedSource
+    ? availableSites.filter((site) => site.key === requestedSource)
+    : availableSites;
 
   // 添加超时控制和错误处理，避免慢接口拖累整体响应
   const searchPromises = apiSites.map((site) =>
@@ -72,9 +82,15 @@ export async function GET(request: NextRequest) {
       { results: flattenedResults },
       {
         headers: {
-          'Cache-Control': `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
-          'CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
-          'Vercel-CDN-Cache-Control': `public, s-maxage=${cacheTime}`,
+          'Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, max-age=${cacheTime}, s-maxage=${cacheTime}`,
+          'CDN-Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, s-maxage=${cacheTime}`,
+          'Vercel-CDN-Cache-Control': searchParams.get('resourceId')
+            ? 'private, no-store'
+            : `public, s-maxage=${cacheTime}`,
           'Netlify-Vary': 'query',
         },
       }
