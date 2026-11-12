@@ -6,6 +6,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 
+import { clearPlaybackProbeCache } from '@/lib/playback-probe-cache';
 import { getVideoResolutionFromM3u8 } from '@/lib/utils';
 
 import PlaybackNodePicker from './PlaybackNodePicker';
@@ -21,8 +22,53 @@ const item = (id: string) => ({
   episodes: [`https://example.com/${id}.m3u8`],
 });
 afterEach(() => {
+  clearPlaybackProbeCache();
   global.fetch = originalFetch;
   jest.clearAllMocks();
+});
+
+test('slow probes do not hold search slots for later sources', async () => {
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+  global.fetch = jest.fn(async (path) => ({
+    ok: true,
+    json: async () =>
+      String(path).includes('/playback/nodes')
+        ? ids.map((key) => ({ key }))
+        : {
+            results: [
+              item(
+                new URL(String(path), 'http://localhost').searchParams.get(
+                  'resourceId'
+                ) || ''
+              ),
+            ],
+          },
+  })) as unknown as typeof fetch;
+  const release: Array<(value: unknown) => void> = [];
+  (getVideoResolutionFromM3u8 as jest.Mock).mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        release.push(resolve);
+      })
+  );
+  const view = render(
+    <PlaybackNodePicker url='/play?title=测试影片' onSelect={jest.fn()} />
+  );
+  await waitFor(() =>
+    expect(
+      (global.fetch as jest.Mock).mock.calls.some(([path]) =>
+        String(path).includes('resourceId=g')
+      )
+    ).toBe(true)
+  );
+  expect(getVideoResolutionFromM3u8).toHaveBeenCalledTimes(3);
+  expect(await screen.findByRole('button', { name: /节点g/ })).toBeDisabled();
+  view.unmount();
+  await act(async () => {
+    release.forEach((resolve) =>
+      resolve({ loadSpeed: '1 MB/s', quality: '1080p', pingTime: 1 })
+    );
+  });
 });
 
 test('the source-list request shows a loading skeleton until fixed source slots are available', async () => {

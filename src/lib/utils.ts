@@ -97,21 +97,10 @@ export async function getVideoResolutionFromM3u8(
       video.muted = true;
       video.preload = 'metadata';
 
-      // 测量网络延迟（ping时间） - 使用m3u8 URL而不是ts文件
-      const pingStart = performance.now();
       let pingTime = 0;
 
-      // 测量ping时间（使用m3u8 URL）
-      fetch(m3u8Url, { method: 'HEAD', mode: 'no-cors', signal })
-        .then(() => {
-          pingTime = performance.now() - pingStart;
-        })
-        .catch(() => {
-          pingTime = performance.now() - pingStart; // 记录到失败为止的时间
-        });
-
       // 固定使用hls.js加载
-      const hls = new Hls();
+      const hls = new Hls({ maxBufferLength: 1, maxMaxBufferLength: 2 });
 
       // 统一的资源释放，重复调用安全
       let released = false;
@@ -211,6 +200,16 @@ export async function getVideoResolutionFromM3u8(
           const size = data.payload.byteLength || 0;
 
           if (loadTime > 0 && size > 0) {
+            const loading =
+              data.part?.stats?.loading ||
+              data.frag?.stats?.loading ||
+              data.stats?.loading;
+            if (
+              loading &&
+              Number.isFinite(loading.first) &&
+              Number.isFinite(loading.start)
+            )
+              pingTime = Math.max(0, loading.first - loading.start);
             const speedKBps = size / 1024 / (loadTime / 1000);
 
             // 立即计算速度，无需等待更多分片

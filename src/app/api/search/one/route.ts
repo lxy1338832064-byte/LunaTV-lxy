@@ -49,7 +49,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const results = await searchFromApi(targetSite, query);
+    const year = searchParams.get('year');
+    const episode = Math.max(
+      1,
+      Math.min(10000, Number(searchParams.get('episode')) || 1)
+    );
+    const matches = (r: import('@/lib/types').SearchResult) =>
+      r.title === query &&
+      (!year || !r.year || r.year === 'unknown' || r.year === year) &&
+      r.episodes.length >= episode &&
+      (config.SiteConfig.DisableYellowFilter ||
+        !yellowWords.some((word) => (r.type_name || '').includes(word)));
+    const results = await searchFromApi(
+      targetSite,
+      query,
+      searchParams.get('fast') === '1' ? { earlyMatch: matches } : undefined
+    );
     let result = results.filter((r) => r.title === query);
     if (!config.SiteConfig.DisableYellowFilter) {
       result = result.filter((result) => {

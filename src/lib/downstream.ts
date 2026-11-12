@@ -193,7 +193,8 @@ function searchWithCache(
 
 export async function searchFromApi(
   apiSite: ApiSite,
-  query: string
+  query: string,
+  options?: { earlyMatch: (result: SearchResult) => boolean }
 ): Promise<SearchResult[]> {
   try {
     const apiBaseUrl = apiSite.api;
@@ -208,7 +209,8 @@ export async function searchFromApi(
       apiUrl,
       8000
     );
-    const results = firstPageResult.results;
+    const results = [...firstPageResult.results];
+    if (options?.earlyMatch && results.some(options.earlyMatch)) return results;
     const pageCountFromFirst = firstPageResult.pageCount;
 
     const config = await getConfig();

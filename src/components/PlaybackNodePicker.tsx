@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+import { createWorkLimiter } from '@/lib/limit-work';
 import { readResume, selectedNodeUrl, speedBytes } from '@/lib/playback-node';
+import { measurePlaybackNode } from '@/lib/playback-probe-cache';
 import type { SearchResult } from '@/lib/types';
-import { getVideoResolutionFromM3u8 } from '@/lib/utils';
 
 import PlaybackNodeSkeleton, {
   rememberNodeCount,
@@ -14,7 +15,7 @@ type Node = {
   key: string;
   name: string;
   item?: SearchResult;
-  state: 'searching' | 'testing' | 'ready' | 'failed' | 'missing';
+  state: 'searching' | 'queued' | 'testing' | 'ready' | 'failed' | 'missing';
   speed?: string;
   quality?: string;
   ping?: number;
@@ -89,8 +90,15 @@ export default function PlaybackNodePicker({
         );
         let cursor = 0,
           completed = 0;
+        const runProbe = createWorkLimiter(3, 200, 60000);
+        const probes: Promise<void>[] = [];
+        const complete = () => {
+          completed++;
+          if (active)
+            setMessage(`已检测 ${completed} / ${sources.length} 个资源站`);
+        };
         await Promise.all(
-          Array.from({ length: Math.min(3, sources.length) }, async () => {
+          Array.from({ length: Math.min(6, sources.length) }, async () => {
             while (active && cursor < sources.length) {
               const source = sources[cursor++];
               try {
@@ -112,7 +120,9 @@ export default function PlaybackNodePicker({
                       source.key
                     )}&q=${encodeURIComponent(
                       params.get('stitle') || params.get('title') || ''
-                    )}`
+                    )}&fast=1&year=${encodeURIComponent(
+                      params.get('year') || ''
+                    )}&episode=${episode}`
                   );
                   item = (result.results || []).find(
                     (candidate: SearchResult) =>
@@ -126,34 +136,44 @@ export default function PlaybackNodePicker({
                 if (!active) return;
                 if (!item?.episodes?.[episode - 1]) {
                   patch(source.key, { state: 'missing' });
+                  complete();
                   continue;
                 }
-                patch(source.key, { item, state: 'testing' });
-                const measured = await getVideoResolutionFromM3u8(
-                  item.episodes[episode - 1],
-                  signal
+                patch(source.key, { item, state: 'queued' });
+                const candidate = item;
+                probes.push(
+                  runProbe(async () => {
+                    if (!active) return;
+                    patch(source.key, { state: 'testing' });
+                    try {
+                      const measured = await measurePlaybackNode(
+                        candidate.episodes[episode - 1],
+                        signal,
+                        revision > 0
+                      );
+                      if (!speedBytes(measured.loadSpeed))
+                        throw new Error('测速失败');
+                      patch(source.key, {
+                        state: 'ready',
+                        speed: measured.loadSpeed,
+                        quality: measured.quality,
+                        ping: measured.pingTime,
+                      });
+                    } catch {
+                      patch(source.key, { state: 'failed' });
+                    }
+                  })
+                    .catch(() => patch(source.key, { state: 'failed' }))
+                    .finally(complete)
                 );
-                if (!speedBytes(measured.loadSpeed))
-                  throw new Error('测速失败');
-                patch(source.key, {
-                  item,
-                  state: 'ready',
-                  speed: measured.loadSpeed,
-                  quality: measured.quality,
-                  ping: measured.pingTime,
-                });
               } catch {
                 patch(source.key, { state: 'failed' });
-              } finally {
-                completed++;
-                if (active)
-                  setMessage(
-                    `已检测 ${completed} / ${sources.length} 个资源站`
-                  );
+                complete();
               }
             }
           })
         );
+        await Promise.all(probes);
       } catch {
         if (active) setMessage('节点加载失败，请重试');
       } finally {
@@ -210,6 +230,8 @@ export default function PlaybackNodePicker({
                   }
                 >
                   {node.state === 'searching'
+                    ? '查找片源…'
+                    : node.state === 'queued'
                     ? '等待测速'
                     : node.state === 'testing'
                     ? '正在测速…'
