@@ -22,11 +22,13 @@ import {
   subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { enrichPlaybackDetail } from '@/lib/playback-detail';
+import { createPlaybackLoader } from '@/lib/playback-loader';
 import { readResume } from '@/lib/playback-node';
 import { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
 import EpisodeSelector from '@/components/EpisodeSelector';
+import { useNavigation } from '@/components/NavigationProvider';
 import PageLayout from '@/components/PageLayout';
 
 // 扩展 HTMLVideoElement 类型以支持 hls 属性
@@ -47,6 +49,8 @@ interface WakeLockSentinel {
 function PlayPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const navigate = useNavigation();
+  const [playbackProblem, setPlaybackProblem] = useState(false);
 
   // -----------------------------------------------------------------------------
   // 状态变量（State）
@@ -115,7 +119,7 @@ function PlayPageClient() {
 
   // 是否需要优选
   const [needPrefer, setNeedPrefer] = useState(
-    searchParams.get('prefer') === 'true'
+    searchParams.get('prefer') === 'true' && !readResume(searchParams)
   );
   const needPreferRef = useRef(needPrefer);
   useEffect(() => {
@@ -209,6 +213,35 @@ function PlayPageClient() {
   const artPlayerRef = useRef<any>(null);
   const artRef = useRef<HTMLDivElement | null>(null);
 
+  const chooseAnotherSource = () => {
+    const params = new URLSearchParams({
+      source: currentSourceRef.current,
+      id: currentIdRef.current,
+      title: videoTitleRef.current,
+      year: videoYearRef.current,
+      resumeEpisode: String(currentEpisodeIndexRef.current + 1),
+      resumeTime: String(
+        artPlayerRef.current?.currentTime || resumeTimeRef.current || 0
+      ),
+      chooseNode: '1',
+    });
+    if (searchTitle) params.set('stitle', searchTitle);
+    navigate(`/play?${params}`, videoTitleRef.current, videoCover);
+  };
+
+  // Give the remembered source time to connect; offer a choice without changing it.
+  useEffect(() => {
+    setPlaybackProblem(false);
+    if (!videoUrl) return;
+    const timer = setTimeout(() => {
+      if ((artPlayerRef.current?.video?.readyState || 0) < 2) {
+        setPlaybackProblem(true);
+        setIsVideoLoading(false);
+      }
+    }, 20000);
+    return () => clearTimeout(timer);
+  }, [videoUrl]);
+
   // Wake Lock 相关
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
@@ -238,8 +271,7 @@ function PlayPageClient() {
           return;
         }
 
-        const episodeUrl =
-          source.episodes.length > 1 ? source.episodes[1] : source.episodes[0];
+        const episodeUrl = source.episodes[currentEpisodeIndex];
         const testResult = await getVideoResolutionFromM3u8(episodeUrl);
 
         allResults[index] = { source, testResult };
@@ -503,26 +535,6 @@ function PlayPageClient() {
     }
   };
 
-  // 去广告相关函数
-  function filterAdsFromM3U8(m3u8Content: string): string {
-    if (!m3u8Content) return '';
-
-    // 按行分割M3U8内容
-    const lines = m3u8Content.split('\n');
-    const filteredLines = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      // 只过滤#EXT-X-DISCONTINUITY标识
-      if (!line.includes('#EXT-X-DISCONTINUITY')) {
-        filteredLines.push(line);
-      }
-    }
-
-    return filteredLines.join('\n');
-  }
-
   // 跳过片头片尾配置相关函数
   const handleSkipConfigChange = async (newConfig: {
     enable: boolean;
@@ -624,36 +636,6 @@ function PlayPageClient() {
         .padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
   };
-
-  class CustomHlsJsLoader extends Hls.DefaultConfig.loader {
-    constructor(config: any) {
-      super(config);
-      const load = this.load.bind(this);
-      this.load = function (context: any, config: any, callbacks: any) {
-        // 拦截manifest和level请求
-        if (
-          (context as any).type === 'manifest' ||
-          (context as any).type === 'level'
-        ) {
-          const onSuccess = callbacks.onSuccess;
-          callbacks.onSuccess = function (
-            response: any,
-            stats: any,
-            context: any
-          ) {
-            // 如果是m3u8文件，处理内容以移除广告分段
-            if (response.data && typeof response.data === 'string') {
-              // 过滤掉广告段 - 实现更精确的广告过滤逻辑
-              response.data = filterAdsFromM3U8(response.data);
-            }
-            return onSuccess(response, stats, context, null);
-          };
-        }
-        // 执行原始load方法
-        load(context, config, callbacks);
-      };
-    }
-  }
 
   // 当集数索引变化时自动更新视频地址
   useEffect(() => {
@@ -794,7 +776,7 @@ function PlayPageClient() {
             searchTitle || videoTitle || sourcesInfo[0].title,
             sourcesInfo[0]
           );
-        } else {
+        } else if (!readResume(searchParams)) {
           sourcesInfo = await fetchSourcesData(searchTitle || videoTitle);
         }
       }
@@ -1422,7 +1404,7 @@ function PlayPageClient() {
 
               /* 自定义loader */
               loader: blockAdEnabledRef.current
-                ? CustomHlsJsLoader
+                ? createPlaybackLoader(Hls)
                 : Hls.DefaultConfig.loader,
             });
 
@@ -1435,6 +1417,8 @@ function PlayPageClient() {
             hls.on(Hls.Events.ERROR, function (event: any, data: any) {
               console.error('HLS Error:', event, data);
               if (data.fatal) {
+                setPlaybackProblem(true);
+                setIsVideoLoading(false);
                 switch (data.type) {
                   case Hls.ErrorTypes.NETWORK_ERROR:
                     console.log('网络错误，尝试恢复...');
@@ -1601,6 +1585,7 @@ function PlayPageClient() {
 
       // 监听视频可播放事件，这时恢复播放进度更可靠
       artPlayerRef.current.on('video:canplay', () => {
+        setPlaybackProblem(false);
         // 若存在需要恢复的播放进度，则跳转
         if (resumeTimeRef.current && resumeTimeRef.current > 0) {
           try {
@@ -1684,6 +1669,8 @@ function PlayPageClient() {
 
       artPlayerRef.current.on('error', (err: any) => {
         console.error('播放器错误:', err);
+        setPlaybackProblem(true);
+        setIsVideoLoading(false);
         if (artPlayerRef.current.currentTime > 0) {
           return;
         }
@@ -1879,6 +1866,12 @@ function PlayPageClient() {
             {/* 操作按钮 */}
             <div className='space-y-3'>
               <button
+                onClick={chooseAnotherSource}
+                className='w-full rounded-xl bg-green-600 px-6 py-3 font-medium text-white'
+              >
+                更换播放源（保留进度）
+              </button>
+              <button
                 onClick={() =>
                   videoTitle
                     ? router.push(`/search?q=${encodeURIComponent(videoTitle)}`)
@@ -1905,6 +1898,31 @@ function PlayPageClient() {
   return (
     <PageLayout activePath='/play'>
       <div className='flex flex-col gap-3 py-4 px-5 lg:px-[3rem] 2xl:px-20'>
+        {playbackProblem && (
+          <div
+            role='alert'
+            className='flex flex-wrap items-center gap-3 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-300'
+          >
+            <p className='min-w-0 flex-1'>
+              当前播放源加载失败或连接较慢，可以重试或更换播放源，观看进度会保留。
+            </p>
+            <button
+              className='rounded-lg border border-amber-400/40 px-3 py-2'
+              onClick={() => {
+                saveCurrentPlayProgress();
+                window.location.reload();
+              }}
+            >
+              重试当前源
+            </button>
+            <button
+              className='rounded-lg bg-green-600 px-3 py-2 font-semibold text-white'
+              onClick={chooseAnotherSource}
+            >
+              更换播放源
+            </button>
+          </div>
+        )}
         {/* 第一行：影片标题 */}
         <div className='py-1'>
           <h1 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>

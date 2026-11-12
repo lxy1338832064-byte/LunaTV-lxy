@@ -13,7 +13,11 @@ import {
   useTransition,
 } from 'react';
 
-import { readResume } from '@/lib/playback-node';
+import {
+  canResumeDirectly,
+  readResume,
+  selectedNodeUrl,
+} from '@/lib/playback-node';
 
 import PlaybackNodeSkeleton from './PlaybackNodeSkeleton';
 
@@ -56,6 +60,20 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
 
   const navigate = (url: string, label = '', poster?: string) => {
     if (url.startsWith('/play?')) {
+      if (canResumeDirectly(url)) {
+        const params = new URL(url, window.location.origin).searchParams;
+        setTitle(label);
+        startTransition(() =>
+          router.push(
+            selectedNodeUrl(
+              url,
+              params.get('source') || '',
+              params.get('id') || ''
+            )
+          )
+        );
+        return;
+      }
       setSelection({
         url,
         title:
@@ -164,7 +182,11 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
                 onSelect={(url) => {
                   setSelection(null);
                   setTitle(selection.title);
-                  startTransition(() => router.push(url));
+                  if (window.location.pathname === '/play') {
+                    window.location.assign(url);
+                  } else {
+                    startTransition(() => router.push(url));
+                  }
                 }}
               />
             </div>

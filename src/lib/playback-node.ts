@@ -14,7 +14,18 @@ export function selectedNodeUrl(
   url.searchParams.set('source', source);
   url.searchParams.set('id', id);
   url.searchParams.delete('prefer');
+  url.searchParams.delete('chooseNode');
   return url.pathname + url.search;
+}
+
+export function canResumeDirectly(url: string): boolean {
+  const params = new URL(url, 'http://localhost').searchParams;
+  return Boolean(
+    readResume(params) &&
+      params.get('source') &&
+      params.get('id') &&
+      params.get('chooseNode') !== '1'
+  );
 }
 
 export function readResume(params: {

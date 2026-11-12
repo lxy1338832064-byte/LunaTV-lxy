@@ -236,7 +236,7 @@ test('failed measurements cannot be played and closing aborts active work', asyn
   const view = render(
     <PlaybackNodePicker url='/play?title=测试影片' onSelect={jest.fn()} />
   );
-  const button = await screen.findByRole('button', { name: /测速失败/ });
+  const button = await screen.findByRole('button', { name: /检测未通过/ });
   expect(button).toBeDisabled();
   const signal = (getVideoResolutionFromM3u8 as jest.Mock).mock
     .calls[0][1] as AbortSignal;

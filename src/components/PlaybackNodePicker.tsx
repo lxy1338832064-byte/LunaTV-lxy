@@ -15,7 +15,14 @@ type Node = {
   key: string;
   name: string;
   item?: SearchResult;
-  state: 'searching' | 'queued' | 'testing' | 'ready' | 'failed' | 'missing';
+  state:
+    | 'searching'
+    | 'queued'
+    | 'testing'
+    | 'ready'
+    | 'failed'
+    | 'timeout'
+    | 'missing';
   speed?: string;
   quality?: string;
   ping?: number;
@@ -90,7 +97,11 @@ export default function PlaybackNodePicker({
         );
         let cursor = 0,
           completed = 0;
-        const runProbe = createWorkLimiter(3, 200, 60000);
+        const runProbe = createWorkLimiter(
+          3,
+          200,
+          Math.max(60000, Math.ceil(sources.length / 3) * 12000 + 5000)
+        );
         const probes: Promise<void>[] = [];
         const complete = () => {
           completed++;
@@ -159,8 +170,14 @@ export default function PlaybackNodePicker({
                         quality: measured.quality,
                         ping: measured.pingTime,
                       });
-                    } catch {
-                      patch(source.key, { state: 'failed' });
+                    } catch (error) {
+                      patch(source.key, {
+                        state:
+                          error instanceof Error &&
+                          error.message.includes('测速超时')
+                            ? 'timeout'
+                            : 'failed',
+                      });
                     }
                   })
                     .catch(() => patch(source.key, { state: 'failed' }))
@@ -237,7 +254,9 @@ export default function PlaybackNodePicker({
                     ? '正在测速…'
                     : node.state === 'missing'
                     ? '无匹配集数'
-                    : '测速失败'}
+                    : node.state === 'timeout'
+                    ? '测速超时 · 请重试'
+                    : '检测未通过'}
                 </span>
               )}
               {node === best && (
@@ -263,7 +282,7 @@ export default function PlaybackNodePicker({
         {!searching && (
           <>
             <span className='truncate text-gray-400'>
-              {!best ? '暂无可用节点，请重试或稍后再试。' : ''}
+              {!best ? '本次未确认可用节点，请重新测速。' : ''}
             </span>
             <button
               className='shrink-0 text-green-400'

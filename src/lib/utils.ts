@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any,no-console */
 
+import { createPlaybackLoader } from './playback-loader';
+
 function getDoubanImageProxyConfig(): {
   proxyType:
     | 'server'
@@ -100,7 +102,15 @@ export async function getVideoResolutionFromM3u8(
       let pingTime = 0;
 
       // 固定使用hls.js加载
-      const hls = new Hls({ maxBufferLength: 1, maxMaxBufferLength: 2 });
+      const hls = new Hls({
+        maxBufferLength: 1,
+        maxMaxBufferLength: 2,
+        lowLatencyMode: false,
+        loader:
+          localStorage.getItem('enable_blockad') !== 'false'
+            ? createPlaybackLoader(Hls)
+            : Hls.DefaultConfig.loader,
+      });
 
       // 统一的资源释放，重复调用安全
       let released = false;
@@ -119,8 +129,8 @@ export async function getVideoResolutionFromM3u8(
       // 设置超时处理
       const timeout = setTimeout(() => {
         cleanup();
-        reject(new Error('Timeout loading video metadata'));
-      }, 4000);
+        reject(new Error('测速超时，尚未确认可用性'));
+      }, 12000);
 
       const onAbort = () => {
         clearTimeout(timeout);
@@ -137,18 +147,20 @@ export async function getVideoResolutionFromM3u8(
 
       let actualLoadSpeed = '未知';
       let hasSpeedCalculated = false;
-      let hasMetadataLoaded = false;
+      let hasPlayableData = false;
 
       let fragmentStartTime = 0;
 
       // 检查是否可以返回结果
       const checkAndResolve = () => {
+        if (released) return;
         if (
-          hasMetadataLoaded &&
+          hasPlayableData &&
           (hasSpeedCalculated || actualLoadSpeed !== '未知')
         ) {
           clearTimeout(timeout);
-          const width = video.videoWidth;
+          const width =
+            video.videoWidth || hls.levels?.[hls.currentLevel]?.width || 0;
           // 无论能否取到尺寸，都必须释放 hls 实例与 video 元素，
           // 否则测速结束后实例仍会在后台持续拉流，造成内存与带宽泄漏
           cleanup();
@@ -194,7 +206,8 @@ export async function getVideoResolutionFromM3u8(
           fragmentStartTime > 0 &&
           data &&
           data.payload &&
-          !hasSpeedCalculated
+          !hasSpeedCalculated &&
+          data.frag?.sn !== 'initSegment'
         ) {
           const loadTime = performance.now() - fragmentStartTime;
           const size = data.payload.byteLength || 0;
@@ -226,13 +239,27 @@ export async function getVideoResolutionFromM3u8(
         }
       });
 
-      hls.loadSource(m3u8Url);
-      hls.attachMedia(video);
-
+      let networkRecoveries = 0;
+      let mediaRecoveries = 0;
+      // Retry within the same overall deadline, as the player does.
       // 监听hls.js错误
       hls.on(Hls.Events.ERROR, (event: any, data: any) => {
         console.error('HLS错误:', data);
         if (data.fatal) {
+          if (
+            data.type === Hls.ErrorTypes.NETWORK_ERROR &&
+            networkRecoveries++ < 1
+          ) {
+            hls.startLoad();
+            return;
+          }
+          if (
+            data.type === Hls.ErrorTypes.MEDIA_ERROR &&
+            mediaRecoveries++ < 1
+          ) {
+            hls.recoverMediaError();
+            return;
+          }
           clearTimeout(timeout);
           cleanup();
           reject(new Error(`HLS播放失败: ${data.type}`));
@@ -240,10 +267,16 @@ export async function getVideoResolutionFromM3u8(
       });
 
       // 监听视频元数据加载完成
+      hls.on(Hls.Events.FRAG_BUFFERED, () => {
+        hasPlayableData = true;
+        checkAndResolve();
+      });
       video.onloadedmetadata = () => {
-        hasMetadataLoaded = true;
+        hasPlayableData = true;
         checkAndResolve(); // 尝试返回结果
       };
+      hls.attachMedia(video);
+      hls.loadSource(m3u8Url);
     });
   } catch (error) {
     throw new Error(
