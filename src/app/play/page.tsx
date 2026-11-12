@@ -1984,13 +1984,13 @@ function PlayPageClient() {
             className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${
               isEpisodeSelectorCollapsed
                 ? 'grid-cols-1'
-                : 'grid-cols-1 md:grid-cols-4'
+                : 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]'
             }`}
           >
             {/* 播放器 */}
             <div
               className={`h-full transition-all duration-300 ease-in-out rounded-xl border border-white/0 dark:border-white/30 ${
-                isEpisodeSelectorCollapsed ? 'col-span-1' : 'md:col-span-3'
+                isEpisodeSelectorCollapsed ? 'col-span-1' : 'min-w-0'
               }`}
             >
               <div className='relative w-full h-[300px] lg:h-full'>
@@ -2041,10 +2041,10 @@ function PlayPageClient() {
 
             {/* 选集和换源 - 在移动端始终显示，在 lg 及以上可折叠 */}
             <div
-              className={`h-[300px] lg:h-full md:overflow-hidden transition-all duration-300 ease-in-out ${
+              className={`min-h-0 lg:h-full lg:overflow-hidden transition-all duration-300 ease-in-out ${
                 isEpisodeSelectorCollapsed
-                  ? 'md:col-span-1 lg:hidden lg:opacity-0 lg:scale-95'
-                  : 'md:col-span-1 lg:opacity-100 lg:scale-100'
+                  ? 'lg:hidden lg:opacity-0 lg:scale-95'
+                  : 'lg:opacity-100 lg:scale-100'
               }`}
             >
               <EpisodeSelector

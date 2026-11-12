@@ -271,6 +271,7 @@ function HomeClient() {
             loading={loading.movies || loading.tv}
           />
         )}
+        {activeTab === 'home' && <RecentWatching compact />}
         <HomeQuickTools />
         <div className='w-full'>
           {activeTab === 'favorites' ? (
@@ -356,12 +357,6 @@ function HomeClient() {
                       ))}
                 </div>
               </section>
-
-              <DeferredSection>
-                <div className='my-6'>
-                  <RecentWatching compact />
-                </div>
-              </DeferredSection>
 
               {/* 热门剧集 */}
               <DeferredSection>

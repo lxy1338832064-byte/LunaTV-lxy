@@ -1,12 +1,11 @@
 'use client';
 
-import { ArrowRight, RefreshCw, Users } from 'lucide-react';
-import Link from 'next/link';
+import { RefreshCw, Users } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { RecentUser } from '@/lib/recent-watching';
 
-import { useNavigation } from './NavigationProvider';
+import RecentWatchingPreview from './RecentWatchingPreview';
 import ScrollableRow from './ScrollableRow';
 import VideoCard from './VideoCard';
 
@@ -17,7 +16,6 @@ export default function RecentWatching({
   compact?: boolean;
   scope?: 'others' | 'all';
 }) {
-  const navigate = useNavigation();
   const [users, setUsers] = useState<RecentUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -76,81 +74,59 @@ export default function RecentWatching({
   const filtered = activeUsers.filter((user) =>
     user.username.toLowerCase().includes(query.trim().toLowerCase())
   );
-  const shown = compact ? filtered.slice(0, 4) : filtered.slice(0, visible);
+  const shown = filtered.slice(0, visible);
+
+  if (compact)
+    return (
+      <RecentWatchingPreview
+        users={filtered}
+        loading={loading}
+        error={error}
+        supported={supported}
+        onRefresh={refresh}
+      />
+    );
 
   return (
     <section
-      className={
-        compact
-          ? 'lux-panel mb-6 rounded-2xl border border-gray-200/70 bg-white/50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/30'
-          : 'mb-8'
-      }
+      className='mb-8'
       aria-label={scope === 'all' ? '用户最近观看' : '大家最近在看'}
     >
-      <div
-        className={`${
-          compact ? 'mb-2' : 'mb-4'
-        } flex flex-wrap items-center justify-between gap-3`}
-      >
-        <h2
-          className={`flex items-center gap-2 ${
-            compact ? 'text-sm' : 'text-xl'
-          } font-semibold text-gray-800 dark:text-gray-200`}
-        >
-          <Users
-            className={
-              compact ? 'h-4 w-4 text-green-600' : 'h-5 w-5 text-green-600'
-            }
-          />
+      <div className='mb-4 flex items-center justify-between gap-3'>
+        <h2 className='flex items-center gap-2 text-xl font-semibold text-gray-800 dark:text-gray-200'>
+          <Users className='h-5 w-5 text-green-600' />
           {scope === 'all' ? '用户最近观看' : '大家最近在看'}
         </h2>
-        <div className='flex items-center gap-4'>
-          <button
-            disabled={loading}
-            onClick={refresh}
-            className='flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-600 disabled:opacity-50'
-          >
-            <RefreshCw
-              className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
-            />
-            刷新
-          </button>
-          {compact && (
-            <Link
-              href='/recent-watching'
-              className='flex items-center gap-1 text-xs text-green-600 dark:text-green-400'
-            >
-              查看全部
-              <ArrowRight className='h-4 w-4' />
-            </Link>
-          )}
-        </div>
-      </div>
-      {!compact && (
-        <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-          <p className='text-sm text-gray-500 dark:text-gray-400'>
-            按最近观看时间排序，每人最多 10 部，相同影片合并展示。
-          </p>
-          <input
-            aria-label='筛选用户'
-            placeholder='搜索用户名'
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setVisible(12);
-            }}
-            className='rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-green-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100'
+        <button
+          disabled={loading}
+          onClick={refresh}
+          className='flex items-center gap-1.5 text-xs text-gray-500 hover:text-green-600 disabled:opacity-50'
+        >
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`}
           />
-        </div>
-      )}
+          刷新
+        </button>
+      </div>
+      <div className='mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <p className='text-sm text-gray-500'>
+          按最近观看时间排序，每人最多 10 部，相同影片合并展示。
+        </p>
+        <input
+          aria-label='筛选用户'
+          placeholder='搜索用户名'
+          value={query}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setVisible(12);
+          }}
+          className='rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 outline-none focus:ring-2 focus:ring-green-500/30 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100'
+        />
+      </div>
       {loading && users.length === 0 ? (
         <div
           role='status'
-          className={`${
-            compact
-              ? 'py-2 text-xs'
-              : 'h-24 rounded-xl bg-gray-200/60 p-5 text-sm dark:bg-gray-800'
-          } animate-pulse text-gray-500`}
+          className='h-24 rounded-xl bg-gray-200/60 p-5 text-sm text-gray-500 dark:bg-gray-800'
         >
           正在获取最近观看…
         </div>
@@ -169,116 +145,61 @@ export default function RecentWatching({
           浏览器本地存储模式不支持跨用户观看记录。
         </p>
       ) : shown.length === 0 ? (
-        <p
-          className={
-            compact
-              ? 'py-1 text-xs leading-relaxed text-gray-400'
-              : 'rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-500 dark:border-gray-800'
-          }
-        >
+        <p className='rounded-xl border border-dashed border-gray-200 p-6 text-sm text-gray-500 dark:border-gray-800'>
           {query
             ? '没有匹配的用户'
             : '还没有其他用户的观看记录，开始观看后会显示在这里。'}
         </p>
       ) : (
-        <div className={compact ? 'grid gap-x-6 sm:grid-cols-2' : 'space-y-6'}>
-          {shown.map((user) => {
-            const latest = user.resources[0];
-            return compact ? (
-              <button
-                key={user.username}
-                disabled={!latest}
-                onClick={() =>
-                  latest &&
-                  navigate(
-                    `/play?title=${encodeURIComponent(
-                      latest.searchTitle
-                    )}&year=${encodeURIComponent(latest.year)}`,
-                    latest.title
-                  )
-                }
-                className='group flex min-w-0 items-center gap-3 rounded-lg py-2.5 text-left hover:bg-gray-50 disabled:cursor-default dark:hover:bg-gray-800/50'
-              >
-                <span className='flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-50 text-xs font-semibold text-green-700 dark:bg-green-500/10 dark:text-green-400'>
-                  {user.username.slice(0, 1).toUpperCase()}
-                </span>
-                <span className='min-w-0 flex-1'>
-                  <span className='block truncate text-xs text-gray-500'>
-                    <span className='font-medium text-gray-700 dark:text-gray-300'>
-                      {user.username}
-                    </span>{' '}
+        <div className='space-y-6'>
+          {shown.map((user) => (
+            <article
+              key={user.username}
+              className='min-w-0 rounded-2xl border border-gray-200/80 bg-white/50 p-4 sm:p-5 dark:border-gray-800 dark:bg-gray-900/40'
+            >
+              <div className='mb-4 flex items-center justify-between gap-3'>
+                <h3 className='truncate font-semibold text-gray-900 dark:text-gray-100'>
+                  {user.username}
+                  <span className='ml-2 text-sm font-normal text-gray-500'>
                     最近在看
                   </span>
-                  <span className='mt-0.5 block truncate text-sm font-medium text-gray-800 group-hover:text-green-700 dark:text-gray-200 dark:group-hover:text-green-400'>
-                    {latest
-                      ? `${latest.title}${
-                          latest.totalEpisodes > 1
-                            ? ` · 第 ${latest.episode} 集`
-                            : ''
-                        }`
-                      : '暂无观看记录'}
-                  </span>
+                </h3>
+                <span className='shrink-0 text-xs text-gray-400'>
+                  {user.resources.length} / 10 部
                 </span>
-                {latest && (
-                  <span className='shrink-0 text-[11px] tabular-nums text-gray-400'>
-                    {new Date(latest.watchedAt).toLocaleString('zh-CN', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </span>
-                )}
-              </button>
-            ) : (
-              <article
-                key={user.username}
-                className='min-w-0 rounded-2xl border border-gray-200/80 bg-white/50 p-4 sm:p-5 dark:border-gray-800 dark:bg-gray-900/40'
-              >
-                <div className='mb-4 flex items-center justify-between gap-3'>
-                  <h3 className='truncate font-semibold text-gray-900 dark:text-gray-100'>
-                    {user.username}
-                    <span className='ml-2 text-sm font-normal text-gray-500'>
-                      最近在看
-                    </span>
-                  </h3>
-                  <span className='shrink-0 text-xs text-gray-400'>
-                    {user.resources.length} / 10 部
-                  </span>
-                </div>
-                {user.resources.length === 0 ? (
-                  <p className='text-sm text-gray-500'>暂无观看记录</p>
-                ) : (
-                  <ScrollableRow>
-                    {user.resources.map((resource) => (
-                      <div
-                        key={`${resource.title}:${resource.year}`}
-                        className='w-28 min-w-[112px] sm:w-40 sm:min-w-[160px]'
-                      >
-                        <VideoCard
-                          title={resource.title}
-                          query={resource.searchTitle}
-                          poster={resource.cover}
-                          year={resource.year}
-                          from='douban'
-                          type={resource.totalEpisodes > 1 ? 'tv' : ''}
-                        />
-                        <p className='mt-2 text-center text-xs text-gray-500'>
-                          {resource.totalEpisodes > 1
-                            ? `看到第 ${resource.episode} 集 · `
-                            : ''}
-                          {new Date(resource.watchedAt).toLocaleDateString(
-                            'zh-CN',
-                            { month: 'numeric', day: 'numeric' }
-                          )}
-                        </p>
-                      </div>
-                    ))}
-                  </ScrollableRow>
-                )}
-              </article>
-            );
-          })}
+              </div>
+              {!user.resources.length ? (
+                <p className='text-sm text-gray-500'>暂无观看记录</p>
+              ) : (
+                <ScrollableRow>
+                  {user.resources.map((resource) => (
+                    <div
+                      key={`${resource.title}:${resource.year}`}
+                      className='w-28 min-w-[112px] sm:w-40 sm:min-w-[160px]'
+                    >
+                      <VideoCard
+                        title={resource.title}
+                        query={resource.searchTitle}
+                        poster={resource.cover}
+                        year={resource.year}
+                        from='douban'
+                        type={resource.totalEpisodes > 1 ? 'tv' : ''}
+                      />
+                      <p className='mt-2 text-center text-xs text-gray-500'>
+                        {resource.totalEpisodes > 1
+                          ? `看到第 ${resource.episode} 集 · `
+                          : ''}
+                        {new Date(resource.watchedAt).toLocaleDateString(
+                          'zh-CN',
+                          { month: 'numeric', day: 'numeric' }
+                        )}
+                      </p>
+                    </div>
+                  ))}
+                </ScrollableRow>
+              )}
+            </article>
+          ))}
         </div>
       )}
       {partial && (
@@ -286,9 +207,9 @@ export default function RecentWatching({
           部分用户记录暂时未能读取，可稍后刷新。
         </p>
       )}
-      {!compact && filtered.length > visible && (
+      {filtered.length > visible && (
         <button
-          onClick={() => setVisible((value) => value + 12)}
+          onClick={() => setVisible((previous) => previous + 12)}
           className='mt-6 rounded-xl border border-gray-200 px-5 py-2 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-300'
         >
           加载更多用户
