@@ -15,12 +15,10 @@ import {
 
 import { readResume } from '@/lib/playback-node';
 
+import PlaybackNodeSkeleton from './PlaybackNodeSkeleton';
+
 const PlaybackNodePicker = dynamic(() => import('./PlaybackNodePicker'), {
-  loading: () => (
-    <p role='status' className='py-6 text-gray-400'>
-      正在查找播放节点…
-    </p>
-  ),
+  loading: () => <PlaybackNodeSkeleton />,
 });
 
 const NavigationContext = createContext<

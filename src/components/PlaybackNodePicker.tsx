@@ -6,6 +6,10 @@ import { readResume, selectedNodeUrl, speedBytes } from '@/lib/playback-node';
 import type { SearchResult } from '@/lib/types';
 import { getVideoResolutionFromM3u8 } from '@/lib/utils';
 
+import PlaybackNodeSkeleton, {
+  rememberNodeCount,
+} from './PlaybackNodeSkeleton';
+
 type Node = {
   key: string;
   name: string;
@@ -33,7 +37,13 @@ export default function PlaybackNodePicker({
     const params = new URL(url, window.location.origin).searchParams;
     const episode = readResume(params)?.episode || 1;
     let active = true;
-    setNodes([]);
+    setNodes((previous) =>
+      previous.map((node) => ({
+        key: node.key,
+        name: node.name,
+        state: 'searching',
+      }))
+    );
     setSearching(true);
     setMessage('正在加载节点列表…');
     const patch = (key: string, change: Partial<Node>) => {
@@ -68,6 +78,7 @@ export default function PlaybackNodePicker({
           '/api/playback/nodes'
         );
         if (!active) return;
+        rememberNodeCount(sources.length);
         // Allocate one fixed slot per configured source before any search/probe.
         setNodes(
           sources.map((source) => ({
@@ -157,6 +168,7 @@ export default function PlaybackNodePicker({
   const best = nodes
     .filter((node) => node.state === 'ready')
     .sort((a, b) => speedBytes(b.speed || '') - speedBytes(a.speed || ''))[0];
+  if (searching && nodes.length === 0) return <PlaybackNodeSkeleton />;
   return (
     <div>
       <div className='mb-3 flex flex-wrap items-center justify-between gap-2'>
@@ -174,17 +186,21 @@ export default function PlaybackNodePicker({
               if (node.item)
                 onSelect(selectedNodeUrl(url, node.item.source, node.item.id));
             }}
-            className='flex h-[80px] min-w-0 flex-col items-start justify-between gap-1 overflow-hidden rounded-lg border border-white/10 bg-white/5 p-2.5 text-left enabled:hover:border-green-400 enabled:hover:bg-green-400/10 disabled:cursor-not-allowed disabled:opacity-50'
+            className={`flex h-[80px] min-w-0 flex-col items-start justify-between gap-1 overflow-hidden rounded-lg border p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50 ${
+              node === best
+                ? 'border-green-400 bg-green-500/15 ring-2 ring-green-400/50 shadow-[0_0_18px_rgba(34,197,94,0.12)]'
+                : 'border-white/10 bg-white/5 enabled:hover:border-green-400 enabled:hover:bg-green-400/10'
+            }`}
           >
             <span className='flex h-5 w-full items-center gap-1 text-xs font-medium text-white'>
               <span className='truncate'>{node.name}</span>
               {node === best && (
-                <span className='shrink-0 rounded bg-green-500/20 px-1 py-0.5 text-[10px] text-green-300'>
-                  ★ {searching ? '当前最快' : '推荐'}
+                <span className='shrink-0 rounded bg-amber-300 px-1.5 py-0.5 text-[10px] font-bold text-gray-950'>
+                  ★ 推荐
                 </span>
               )}
             </span>
-            <span className='block text-xs text-green-300'>
+            <span className='flex h-4 w-full items-center justify-between gap-1 text-xs font-semibold text-green-300'>
               {node.state === 'ready' ? (
                 node.speed
               ) : (
@@ -202,6 +218,11 @@ export default function PlaybackNodePicker({
                     : '测速失败'}
                 </span>
               )}
+              {node === best && (
+                <span className='shrink-0 text-[10px] font-bold text-amber-300'>
+                  当前最快
+                </span>
+              )}
             </span>
             <span className='block h-3 text-[10px] text-gray-500'>
               {node.state === 'ready'
@@ -216,19 +237,21 @@ export default function PlaybackNodePicker({
           </button>
         ))}
       </div>
-      {!searching && !best && (
-        <p className='mt-3 text-xs text-gray-400'>
-          暂无可用节点，请重试或稍后再试。
-        </p>
-      )}
-      {!searching && (
-        <button
-          className='mt-3 text-xs text-green-400'
-          onClick={() => setRevision((value) => value + 1)}
-        >
-          重新搜索测速
-        </button>
-      )}
+      <div className='mt-3 flex h-4 items-center justify-between gap-2 text-xs'>
+        {!searching && (
+          <>
+            <span className='truncate text-gray-400'>
+              {!best ? '暂无可用节点，请重试或稍后再试。' : ''}
+            </span>
+            <button
+              className='shrink-0 text-green-400'
+              onClick={() => setRevision((value) => value + 1)}
+            >
+              重新搜索测速
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

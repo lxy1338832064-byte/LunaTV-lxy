@@ -25,6 +25,30 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
+test('the source-list request shows a loading skeleton until fixed source slots are available', async () => {
+  let finish: (value: unknown) => void = () => undefined;
+  global.fetch = jest.fn(async (path) => {
+    if (String(path).includes('/playback/nodes'))
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    return { ok: true, json: async () => ({ results: [] }) };
+  }) as unknown as typeof fetch;
+  render(
+    <PlaybackNodePicker url='/play?title=测试影片' onSelect={jest.fn()} />
+  );
+  expect(
+    screen.getByRole('status', { name: '正在加载播放节点' })
+  ).toHaveAttribute('aria-busy', 'true');
+  await act(async () => {
+    finish({ ok: true, json: async () => [{ key: 'a' }] });
+  });
+  expect(await screen.findByRole('button', { name: /节点a/ })).toBeDisabled();
+  expect(
+    screen.queryByRole('status', { name: '正在加载播放节点' })
+  ).not.toBeInTheDocument();
+});
+
 test('all source slots appear before searching and retain their order when results arrive out of order', async () => {
   let finishB: (value: unknown) => void = () => undefined;
   global.fetch = jest.fn(async (path, options) => {
