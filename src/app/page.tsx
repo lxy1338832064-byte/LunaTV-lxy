@@ -244,16 +244,23 @@ function HomeClient() {
               if (query)
                 navigate(`/search?q=${encodeURIComponent(query)}`, '搜索结果');
             }}
-            className='relative w-full sm:max-w-md'
+            role='search'
+            className='relative flex w-full items-center gap-2 rounded-full border border-green-400/50 bg-[#17241e] p-1.5 shadow-[0_0_24px_rgba(34,197,94,0.08)] transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-400/25 sm:ml-6 sm:w-auto sm:max-w-2xl sm:flex-1'
           >
-            <Search className='absolute left-3 top-3 h-4 w-4 text-gray-500' />
+            <Search
+              aria-hidden='true'
+              className='pointer-events-none absolute left-4 h-5 w-5 text-green-400'
+            />
             <input
               name='q'
               aria-label='搜索电影、电视剧'
-              placeholder='搜索电影、电视剧…'
-              className='lux-input h-10 w-full rounded-md border border-gray-700 bg-gray-900 pl-10 pr-16 text-sm text-gray-100 outline-none focus:ring-1 focus:ring-green-500'
+              placeholder='输入电影、电视剧名称…'
+              className='h-11 min-w-0 flex-1 rounded-full border-0 bg-transparent pl-10 pr-1 text-base text-white outline-none placeholder:text-gray-300 focus:ring-0'
             />
-            <button className='absolute right-0 top-0 h-10 rounded-r-md border-l border-gray-700 px-4 text-sm text-gray-200 hover:text-green-400'>
+            <button
+              type='submit'
+              className='h-11 shrink-0 rounded-full bg-green-400 px-5 text-sm font-bold text-gray-950 transition-colors hover:bg-green-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-300 sm:px-7'
+            >
               搜索
             </button>
           </form>
