@@ -2,6 +2,7 @@
 
 import { ArrowDownUp, Gauge, Layers, Radio, Settings2 } from 'lucide-react';
 import {
+  KeyboardEvent,
   ReactNode,
   useCallback,
   useEffect,
@@ -58,25 +59,54 @@ export default function EpisodeSelector({
   playbackControls,
 }: EpisodeSelectorProps) {
   const panelId = useId();
-  const episodesPanel = useRef<HTMLElement>(null);
-  const sourcesPanel = useRef<HTMLElement>(null);
-  const settingsPanel = useRef<HTMLDivElement>(null);
-  const revealPanel = (panel: HTMLElement | null) => {
-    if (!panel) return;
-    panel.focus({ preventScroll: true });
-    panel.scrollIntoView({
-      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-        ? 'auto'
-        : 'smooth',
-      block: 'start',
-    });
-  };
+  const [mobileTab, setMobileTab] = useState('episodes');
   const currentSourceName =
     availableSources.find(
       (source) => source.source === currentSource && source.id === currentId
     )?.source_name ||
     currentSource ||
     '正在获取';
+  const tabs = [
+    {
+      key: 'episodes',
+      label: '选集',
+      description: `第 ${value} 集 / 共 ${totalEpisodes} 集`,
+      icon: Layers,
+    },
+    {
+      key: 'sources',
+      label: '换源',
+      description: currentSourceName,
+      icon: Radio,
+    },
+    ...(playbackControls
+      ? [
+          {
+            key: 'settings',
+            label: '设置',
+            description: '连播 · 跳过片头尾',
+            icon: Settings2,
+          },
+        ]
+      : []),
+  ];
+  const handleTabKey = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    let next = index;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft')
+      next = (index + tabs.length - 1) % tabs.length;
+    else if (event.key === 'Home') next = 0;
+    else if (event.key === 'End') next = tabs.length - 1;
+    else return;
+    event.preventDefault();
+    setMobileTab(tabs[next].key);
+    event.currentTarget.parentElement
+      ?.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+      [next]?.focus({ preventScroll: true });
+  };
   const [defaultSourceKey, setDefaultSourceKey] = useState(
     () => getDefaultSource()?.key || ''
   );
@@ -205,63 +235,53 @@ export default function EpisodeSelector({
     )[0]?.[0];
 
   return (
-    <div className='playback-sidebar relative flex min-h-0 flex-col gap-4 rounded-xl border border-white/10 bg-[#111416] p-3 text-gray-200 lg:h-full lg:gap-5 lg:overflow-y-auto lg:p-4'>
-      <nav
-        aria-label='播放快捷操作'
-        className='sticky top-12 z-30 -mx-3 -mt-3 grid shrink-0 grid-cols-3 gap-2 rounded-t-xl border-b border-white/10 bg-[#111416]/95 p-3 backdrop-blur-xl md:top-0 lg:hidden'
+    <div className='playback-sidebar relative flex min-h-0 flex-col gap-4 rounded-xl border border-white/10 bg-[#111416] p-3 text-gray-200 2xl:h-full 2xl:gap-5 2xl:overflow-y-auto 2xl:p-4'>
+      <div
+        role='tablist'
+        aria-label='播放选项'
+        className={`sticky top-12 z-30 -mx-3 -mt-3 grid shrink-0 gap-2 rounded-t-xl border-b border-white/10 bg-[#111416]/95 p-3 backdrop-blur-xl 2xl:hidden ${
+          playbackControls ? 'grid-cols-3' : 'grid-cols-2'
+        }`}
       >
-        <button
-          type='button'
-          aria-label='切换播放源'
-          aria-controls={`${panelId}-sources`}
-          onClick={() => revealPanel(sourcesPanel.current)}
-          className='min-w-0 rounded-xl border border-green-400/40 bg-green-400/15 px-2 py-2.5 text-left text-green-300'
-        >
-          <span className='flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold'>
-            <Radio className='h-4 w-4 shrink-0' />
-            换源
-          </span>
-          <span className='mt-1 block truncate text-[11px] text-green-200/70'>
-            {currentSourceName}
-          </span>
-        </button>
-        <button
-          type='button'
-          aria-controls={`${panelId}-episodes`}
-          onClick={() => revealPanel(episodesPanel.current)}
-          className='min-w-0 rounded-xl border border-white/10 bg-white/5 px-2 py-2.5 text-left'
-        >
-          <span className='flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold'>
-            <Layers className='h-4 w-4 shrink-0 text-green-400' />
-            选集
-          </span>
-          <span className='mt-1 block truncate text-[11px] text-gray-400'>
-            第 {value} 集 / 共 {totalEpisodes} 集
-          </span>
-        </button>
-        {playbackControls && (
-          <button
-            type='button'
-            aria-controls={`${panelId}-settings`}
-            onClick={() => revealPanel(settingsPanel.current)}
-            className='min-w-0 rounded-xl border border-white/10 bg-white/5 px-2 py-2.5 text-left'
-          >
-            <span className='flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold'>
-              <Settings2 className='h-4 w-4 shrink-0 text-green-400' />
-              设置
-            </span>
-            <span className='mt-1 block truncate text-[11px] text-gray-400'>
-              连播 · 跳过片头尾
-            </span>
-          </button>
-        )}
-      </nav>
+        {tabs.map((tab, index) => {
+          const active = mobileTab === tab.key;
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.key}
+              type='button'
+              role='tab'
+              id={`${panelId}-${tab.key}-tab`}
+              aria-controls={`${panelId}-${tab.key}`}
+              aria-selected={active}
+              tabIndex={active ? 0 : -1}
+              onClick={() => setMobileTab(tab.key)}
+              onKeyDown={(event) => handleTabKey(event, index)}
+              className={`min-w-0 rounded-xl border px-2 py-2.5 text-left transition-colors ${
+                active
+                  ? 'border-green-400/40 bg-green-400/15 text-green-300'
+                  : 'border-white/10 bg-white/5 text-gray-400'
+              }`}
+            >
+              <span className='flex items-center gap-1.5 whitespace-nowrap text-sm font-semibold'>
+                <Icon className='h-4 w-4 shrink-0' />
+                {tab.label}
+              </span>
+              <span className='mt-1 block truncate text-[11px] opacity-70'>
+                {tab.description}
+              </span>
+            </button>
+          );
+        })}
+      </div>
       <section
-        ref={episodesPanel}
         id={`${panelId}-episodes`}
+        role='tabpanel'
         tabIndex={-1}
         aria-label='选集'
-        className='order-2 flex min-h-0 scroll-mt-40 flex-col rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-green-400 md:scroll-mt-28 lg:order-none lg:max-h-[34%]'
+        className={`${
+          mobileTab === 'episodes' ? 'flex' : 'hidden'
+        } min-h-[260px] flex-col rounded-lg 2xl:flex 2xl:min-h-0 2xl:max-h-[34%]`}
       >
         <div className='mb-3 flex shrink-0 items-center justify-between gap-2'>
           <h2 className='flex items-center gap-2 text-sm font-semibold text-white'>
@@ -302,7 +322,7 @@ export default function EpisodeSelector({
             ))}
           </div>
         )}
-        <div className='flex max-h-36 flex-wrap content-start gap-2 overflow-y-auto overscroll-contain pr-1 lg:max-h-none'>
+        <div className='flex max-h-72 flex-wrap content-start gap-2 overflow-y-auto overscroll-contain pr-1 2xl:max-h-none'>
           {episodes.map((number) => {
             const label = episodes_titles[number - 1] || `第 ${number} 集`;
             const numeric = label.match(/^(?:第)?(\d+)(?:集|话)$/);
@@ -336,20 +356,25 @@ export default function EpisodeSelector({
       </section>
       {playbackControls && (
         <div
-          ref={settingsPanel}
           id={`${panelId}-settings`}
+          role='tabpanel'
+          aria-label='播放设置'
           tabIndex={-1}
-          className='order-3 shrink-0 scroll-mt-40 rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-green-400 md:scroll-mt-28 lg:order-none'
+          className={`${
+            mobileTab === 'settings' ? 'block' : 'hidden'
+          } min-h-[260px] shrink-0 rounded-lg 2xl:block 2xl:min-h-0`}
         >
           {playbackControls}
         </div>
       )}
       <section
-        ref={sourcesPanel}
         id={`${panelId}-sources`}
+        role='tabpanel'
         tabIndex={-1}
         aria-label='播放源'
-        className='order-1 flex min-h-0 scroll-mt-40 flex-1 flex-col rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-green-400 md:scroll-mt-28 lg:order-none lg:border-t lg:border-white/10 lg:pt-4'
+        className={`${
+          mobileTab === 'sources' ? 'flex' : 'hidden'
+        } min-h-[260px] flex-1 flex-col rounded-lg 2xl:flex 2xl:min-h-0 2xl:border-t 2xl:border-white/10 2xl:pt-4`}
       >
         <div className='mb-3 flex shrink-0 items-center justify-between gap-2'>
           <h2 className='flex items-center gap-2 text-sm font-semibold text-white'>
@@ -379,7 +404,7 @@ export default function EpisodeSelector({
             {sourceSearchError}
           </p>
         )}
-        <div className='playback-source-grid grid max-h-52 gap-2 overflow-y-auto overscroll-contain pr-1 lg:max-h-none'>
+        <div className='playback-source-grid grid max-h-72 gap-2 overflow-y-auto overscroll-contain pr-1 2xl:max-h-none'>
           {sortedSources.map((source) => {
             const key = `${source.source}-${source.id}`;
             const current =
@@ -395,7 +420,7 @@ export default function EpisodeSelector({
                 onClick={() =>
                   onSourceChange?.(source.source, source.id, source.title)
                 }
-                className={`flex min-h-[68px] min-w-0 flex-col justify-between gap-1 rounded-lg border p-2.5 text-left transition-colors disabled:cursor-default lg:min-h-[76px] ${
+                className={`flex min-h-[68px] min-w-0 flex-col justify-between gap-1 rounded-lg border p-2.5 text-left transition-colors disabled:cursor-default 2xl:min-h-[76px] ${
                   current
                     ? 'border-green-400/50 bg-green-400/10'
                     : 'border-white/10 bg-white/[0.03] enabled:hover:border-green-400/40 enabled:hover:bg-green-400/5'

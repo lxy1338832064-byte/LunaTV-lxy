@@ -1863,7 +1863,7 @@ function PlayPageClient() {
 
   return (
     <PageLayout activePath='/play'>
-      <div className='flex flex-col gap-3 px-3 py-3 sm:px-5 lg:px-[3rem] lg:py-4 2xl:px-20'>
+      <div className='flex flex-col gap-3 px-3 py-3 sm:px-5 2xl:py-4 2xl:px-20'>
         {playbackProblem && (
           <div
             role='alert'
@@ -1906,7 +1906,7 @@ function PlayPageClient() {
         {/* 第二行：播放器和选集 */}
         <div className='space-y-2'>
           {/* 折叠控制 - 仅在 lg 及以上屏幕显示 */}
-          <div className='hidden lg:flex justify-end'>
+          <div className='hidden 2xl:flex justify-end'>
             <button
               onClick={() =>
                 setIsEpisodeSelectorCollapsed(!isEpisodeSelectorCollapsed)
@@ -1947,10 +1947,10 @@ function PlayPageClient() {
           </div>
 
           <div
-            className={`grid gap-4 lg:h-[500px] xl:h-[650px] 2xl:h-[750px] transition-all duration-300 ease-in-out ${
+            className={`grid gap-4 2xl:h-[750px] transition-all duration-300 ease-in-out ${
               isEpisodeSelectorCollapsed
                 ? 'grid-cols-1'
-                : 'grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px]'
+                : 'grid-cols-1 2xl:grid-cols-[minmax(0,1fr)_340px]'
             }`}
           >
             {/* 播放器 */}
@@ -1959,7 +1959,7 @@ function PlayPageClient() {
                 isEpisodeSelectorCollapsed ? 'col-span-1' : 'min-w-0'
               }`}
             >
-              <div className='relative aspect-video w-full lg:aspect-auto lg:h-full'>
+              <div className='relative aspect-video w-full 2xl:aspect-auto 2xl:h-full'>
                 <div
                   ref={artRef}
                   className='bg-black w-full h-full rounded-xl overflow-hidden shadow-lg'
@@ -2043,10 +2043,10 @@ function PlayPageClient() {
 
             {/* 选集和换源 - 在移动端始终显示，在 lg 及以上可折叠 */}
             <div
-              className={`min-h-0 lg:h-full lg:overflow-hidden transition-all duration-300 ease-in-out ${
+              className={`min-h-0 2xl:h-full 2xl:overflow-hidden transition-all duration-300 ease-in-out ${
                 isEpisodeSelectorCollapsed
-                  ? 'lg:hidden lg:opacity-0 lg:scale-95'
-                  : 'lg:opacity-100 lg:scale-100'
+                  ? '2xl:hidden 2xl:opacity-0 2xl:scale-95'
+                  : '2xl:opacity-100 2xl:scale-100'
               }`}
             >
               <EpisodeSelector

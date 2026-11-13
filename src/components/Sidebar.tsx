@@ -53,6 +53,7 @@ const Logo = () => {
 };
 
 interface SidebarProps {
+  drawer?: boolean;
   onToggle?: (collapsed: boolean) => void;
   activePath?: string;
 }
@@ -64,12 +65,17 @@ declare global {
   }
 }
 
-const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
+const Sidebar = ({
+  onToggle,
+  activePath = '/',
+  drawer = false,
+}: SidebarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   // 若同一次 SPA 会话中已经读取过折叠状态，则直接复用，避免闪烁
   const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (drawer) return false;
     if (
       typeof window !== 'undefined' &&
       typeof window.__sidebarCollapsed === 'boolean'
@@ -81,16 +87,18 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
 
   // 首次挂载时读取 localStorage，以便刷新后仍保持上次的折叠状态
   useLayoutEffect(() => {
+    if (drawer) return;
     const saved = localStorage.getItem('sidebarCollapsed');
     if (saved !== null) {
       const val = JSON.parse(saved);
       setIsCollapsed(val);
       window.__sidebarCollapsed = val;
     }
-  }, []);
+  }, [drawer]);
 
   // 当折叠状态变化时，同步到 <html> data 属性，供首屏 CSS 使用
   useLayoutEffect(() => {
+    if (drawer) return;
     if (typeof document !== 'undefined') {
       if (isCollapsed) {
         document.documentElement.dataset.sidebarCollapsed = 'true';
@@ -98,7 +106,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         delete document.documentElement.dataset.sidebarCollapsed;
       }
     }
-  }, [isCollapsed]);
+  }, [isCollapsed, drawer]);
 
   const [active, setActive] = useState(activePath);
 
@@ -118,6 +126,10 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
   }, [activePath, pathname, searchParams]);
 
   const handleToggle = useCallback(() => {
+    if (drawer) {
+      onToggle?.(true);
+      return;
+    }
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     localStorage.setItem('sidebarCollapsed', JSON.stringify(newState));
@@ -125,7 +137,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
       window.__sidebarCollapsed = newState;
     }
     onToggle?.(newState);
-  }, [isCollapsed, onToggle]);
+  }, [isCollapsed, onToggle, drawer]);
 
   const handleSearchClick = useCallback(() => {
     router.push('/search');
@@ -193,11 +205,11 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
   return (
     <SidebarContext.Provider value={contextValue}>
       {/* 在移动端隐藏侧边栏 */}
-      <div className='hidden md:flex'>
+      <div className={drawer ? 'flex' : 'hidden md:flex'}>
         <aside
           data-sidebar
           className={`fixed top-0 left-0 h-screen bg-white/90 transition-all duration-300 border-r border-gray-200/50 z-10 dark:bg-gray-950/95 dark:border-gray-700/50 ${
-            isCollapsed ? 'w-16' : 'w-40'
+            drawer ? 'w-64' : isCollapsed ? 'w-16' : 'w-40'
           }`}
         >
           <div className='flex h-full flex-col'>
@@ -213,6 +225,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
                 </div>
               </div>
               <button
+                aria-label={drawer ? '收起导航菜单' : '切换导航菜单'}
                 onClick={handleToggle}
                 className={`absolute top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100/50 transition-colors duration-200 z-10 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-700/50 ${
                   isCollapsed ? 'left-1/2 -translate-x-1/2' : 'right-2'
@@ -307,7 +320,7 @@ const Sidebar = ({ onToggle, activePath = '/' }: SidebarProps) => {
         </aside>
         <div
           className={`transition-all duration-300 sidebar-offset ${
-            isCollapsed ? 'w-16' : 'w-40'
+            drawer ? 'hidden' : isCollapsed ? 'w-16' : 'w-40'
           }`}
         ></div>
       </div>

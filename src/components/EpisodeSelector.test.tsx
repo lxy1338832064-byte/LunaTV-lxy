@@ -4,7 +4,6 @@ import {
   render,
   screen,
   waitFor,
-  within,
 } from '@testing-library/react';
 
 import { getDefaultSource, saveDefaultSource } from '@/lib/default-source';
@@ -55,8 +54,8 @@ test('episodes and sources are visible together, with existing selection callbac
       onSourceChange={sourceChange}
     />
   );
-  expect(screen.getByRole('region', { name: '选集' })).toBeVisible();
-  expect(screen.getByRole('region', { name: '播放源' })).toBeVisible();
+  expect(screen.getByRole('tabpanel', { name: '选集' })).toBeVisible();
+  expect(screen.getByRole('tabpanel', { name: '播放源' })).toBeVisible();
   expect(screen.getByRole('button', { name: /源a/ })).toBeDisabled();
   fireEvent.click(screen.getByRole('button', { name: '播放第 3 集' }));
   expect(change).toHaveBeenCalledWith(2);
@@ -66,7 +65,7 @@ test('episodes and sources are visible together, with existing selection callbac
   expect(sources.map((source) => source.id)).toEqual(['a', 'b', 'c', 'd']);
 });
 
-test('mobile shortcuts reveal the requested section and preserve playback state', async () => {
+test('mobile tabs switch panels without scrolling or changing playback, preserving settings', async () => {
   const scroll = jest.fn();
   const previousScroll = HTMLElement.prototype.scrollIntoView;
   HTMLElement.prototype.scrollIntoView = scroll;
@@ -81,29 +80,42 @@ test('mobile shortcuts reveal the requested section and preserve playback state'
         currentId='a'
         availableSources={sources}
         onChange={change}
-        playbackControls={<section aria-label='智能播放'>播放配置</section>}
+        playbackControls={<input aria-label='测试播放设置' defaultValue='90' />}
       />
     );
-    const shortcuts = screen.getByRole('navigation', { name: '播放快捷操作' });
-    fireEvent.click(
-      within(shortcuts).getByRole('button', { name: '切换播放源' })
+    const sourcesTab = screen.getByRole('tab', { name: /换源/ });
+    const episodesTab = screen.getByRole('tab', { name: /选集/ });
+    const settingsTab = screen.getByRole('tab', { name: /设置/ });
+    expect(episodesTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getAllByRole('tab')[0]).toBe(episodesTab);
+    expect(sourcesTab).toHaveAttribute('aria-selected', 'false');
+    expect(screen.getByRole('tabpanel', { name: '播放源' })).toHaveClass(
+      'hidden'
     );
-    expect(document.activeElement).toBe(
-      screen.getByRole('region', { name: '播放源' })
+    fireEvent.click(settingsTab);
+    expect(settingsTab).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tabpanel', { name: '播放设置' })).not.toHaveClass(
+      'hidden'
     );
-    fireEvent.click(within(shortcuts).getByRole('button', { name: /选集/ }));
-    expect(document.activeElement).toBe(
-      screen.getByRole('region', { name: '选集' })
+    fireEvent.change(screen.getByLabelText('测试播放设置'), {
+      target: { value: '120' },
+    });
+    fireEvent.click(episodesTab);
+    expect(screen.getByRole('tabpanel', { name: '选集' })).not.toHaveClass(
+      'hidden'
     );
-    fireEvent.click(within(shortcuts).getByRole('button', { name: /设置/ }));
-    expect(document.activeElement).toContainElement(
-      screen.getByRole('region', { name: '智能播放' })
+    expect(screen.getByRole('tabpanel', { name: '播放源' })).toHaveClass(
+      'hidden'
     );
-    expect(scroll).toHaveBeenCalledTimes(3);
+    fireEvent.keyDown(episodesTab, { key: 'End' });
+    expect(document.activeElement).toBe(settingsTab);
+    expect(screen.getByLabelText('测试播放设置')).toHaveValue('120');
+    expect(scroll).not.toHaveBeenCalled();
     expect(change).not.toHaveBeenCalled();
     await waitFor(() =>
       expect(screen.getByRole('button', { name: '重新测速' })).toBeEnabled()
     );
+    expect(measurePlaybackNode).toHaveBeenCalledTimes(4);
   } finally {
     HTMLElement.prototype.scrollIntoView = previousScroll;
   }
