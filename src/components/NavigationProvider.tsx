@@ -13,7 +13,11 @@ import {
   useTransition,
 } from 'react';
 
-import { getDefaultSource, resolveDefaultPlayback } from '@/lib/default-source';
+import {
+  getDefaultSource,
+  resolveDefaultPlayback,
+  syncDefaultSource,
+} from '@/lib/default-source';
 import {
   canResumeDirectly,
   readResume,
@@ -32,6 +36,18 @@ const NavigationContext = createContext<
 
 export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') void syncDefaultSource(true);
+    };
+    void syncDefaultSource();
+    document.addEventListener('visibilitychange', refresh);
+    const timer = setInterval(refresh, 60000);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      clearInterval(timer);
+    };
+  }, []);
   const lookup = useRef<AbortController | null>(null);
   const [resolving, setResolving] = useState(false);
   useEffect(

@@ -19,7 +19,7 @@ import {
   getSearchHistory,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
-import { getDefaultSource } from '@/lib/default-source';
+import { getDefaultSource, syncDefaultSource } from '@/lib/default-source';
 import { SearchResult } from '@/lib/types';
 
 import PageLayout from '@/components/PageLayout';
@@ -38,6 +38,16 @@ function SearchPageClient() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [preferenceReady, setPreferenceReady] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void syncDefaultSource().finally(() => {
+      if (active) setPreferenceReady(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   const currentQueryRef = useRef<string>('');
   const [defaultSearchName, setDefaultSearchName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -448,6 +458,7 @@ function SearchPageClient() {
   }, []);
 
   useEffect(() => {
+    if (!preferenceReady) return;
     // 当搜索参数变化时更新搜索状态
     const query = searchParams.get('q') || '';
     currentQueryRef.current = query.trim();
@@ -632,7 +643,7 @@ function SearchPageClient() {
       setShowResults(false);
       setShowSuggestions(false);
     }
-  }, [searchParams]);
+  }, [searchParams, preferenceReady]);
 
   // 组件卸载时，关闭可能存在的连接
   useEffect(() => {

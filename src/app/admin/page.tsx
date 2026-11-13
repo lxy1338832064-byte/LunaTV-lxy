@@ -44,6 +44,7 @@ import { createPortal } from 'react-dom';
 import { AdminConfig, AdminConfigResult } from '@/lib/admin.types';
 import { getAuthInfoFromBrowserCookie } from '@/lib/auth';
 
+import AdminDefaultSourceEditor from '@/components/AdminDefaultSourceEditor';
 import DataMigration from '@/components/DataMigration';
 import PageLayout from '@/components/PageLayout';
 import RecentWatching from '@/components/RecentWatching';
@@ -859,6 +860,19 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
   return (
     <div className='space-y-6'>
       <RecentWatching scope='all' />
+      <section className='rounded-xl border border-green-500/20 bg-green-500/5 p-4'>
+        <h4 className='mb-2 text-sm font-semibold text-gray-200'>
+          统一设置默认播放源
+        </h4>
+        <AdminDefaultSourceEditor
+          users={config.UserConfig.Users}
+          config={config}
+          onSaved={refreshConfig}
+        />
+        <p className='mt-2 text-xs text-gray-500'>
+          也可在下方用户列表中分别设置。账号设置会同步到用户的其他浏览器，当前播放不会中断。
+        </p>
+      </section>
       {/* 用户统计 */}
       <div>
         <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300 mb-3'>
@@ -1208,6 +1222,12 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                 </th>
                 <th
                   scope='col'
+                  className='px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400'
+                >
+                  默认播放源
+                </th>
+                <th
+                  scope='col'
                   className='px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
                 >
                   操作
@@ -1346,6 +1366,13 @@ const UserConfig = ({ config, role, refreshConfig }: UserConfigProps) => {
                               </button>
                             )}
                           </div>
+                        </td>
+                        <td className='px-6 py-4 whitespace-nowrap'>
+                          <AdminDefaultSourceEditor
+                            users={[user]}
+                            config={config}
+                            onSaved={refreshConfig}
+                          />
                         </td>
                         <td className='px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2'>
                           {/* 修改密码按钮 */}

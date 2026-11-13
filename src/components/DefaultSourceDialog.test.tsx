@@ -1,4 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 
 import { getDefaultSource, saveDefaultSource } from '@/lib/default-source';
 
@@ -25,9 +31,11 @@ test('saving a selected default is explicit, and cancel does not save a draft', 
   const view = render(<DefaultSourceDialog onClose={close} />);
   fireEvent.click(await screen.findByLabelText(/B源/));
   expect(getDefaultSource()).toBeNull();
-  fireEvent.click(screen.getByText('保存设置'));
+  await act(async () => {
+    fireEvent.click(screen.getByText('保存设置'));
+  });
   expect(getDefaultSource()).toEqual({ key: 'b', name: 'B源' });
-  expect(close).toHaveBeenCalled();
+  await waitFor(() => expect(close).toHaveBeenCalled());
   view.unmount();
   render(<DefaultSourceDialog onClose={close} />);
   fireEvent.click(await screen.findByLabelText(/A源/));
@@ -43,7 +51,9 @@ test('a default removed from configuration is reported instead of silently overw
   );
   expect(screen.getByText('保存设置')).toBeDisabled();
   fireEvent.click(screen.getByLabelText(/不设置默认源/));
-  fireEvent.click(screen.getByText('保存设置'));
+  await act(async () => {
+    fireEvent.click(screen.getByText('保存设置'));
+  });
   expect(getDefaultSource()).toBeNull();
 });
 

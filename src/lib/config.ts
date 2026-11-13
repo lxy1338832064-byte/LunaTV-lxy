@@ -406,6 +406,7 @@ export function configSelfCheck(adminConfig: AdminConfig): AdminConfig {
     banned: false,
     enabledApis: originOwnerCfg?.enabledApis || undefined,
     tags: originOwnerCfg?.tags || undefined,
+    defaultSourceKey: originOwnerCfg?.defaultSourceKey,
   });
 
   // 采集源去重

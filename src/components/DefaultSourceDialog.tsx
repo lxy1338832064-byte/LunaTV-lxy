@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import {
+  accountDefaultSourceEnabled,
   DefaultSource,
   getDefaultSource,
-  saveDefaultSource,
+  saveAccountDefaultSource,
+  syncDefaultSource,
 } from '@/lib/default-source';
 import type { SourceHealth } from '@/lib/source-health';
 
@@ -20,6 +22,7 @@ export default function DefaultSourceDialog({
   const [sources, setSources] = useState<DefaultSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
   const [revision, setRevision] = useState(0);
   const [health, setHealth] = useState<SourceHealth[]>([]);
   const [healthLoading, setHealthLoading] = useState(true);
@@ -50,8 +53,12 @@ export default function DefaultSourceDialog({
         if (!response.ok) throw new Error();
         return response.json();
       })
-      .then((data) => {
-        if (active) setSources(data);
+      .then(async (data) => {
+        const source = await syncDefaultSource(true);
+        if (active) {
+          setSources(data);
+          setSelected(source?.key || '');
+        }
       })
       .catch(() => {
         if (active) setError('播放源列表加载失败，请重试');
@@ -106,14 +113,19 @@ export default function DefaultSourceDialog({
   const unavailable = Boolean(
     selected && !loading && !sources.some((source) => source.key === selected)
   );
-  const save = () => {
+  const save = async () => {
+    setSaving(true);
     try {
       const source = sources.find((source) => source.key === selected);
       if (selected && !source) return;
-      saveDefaultSource(source || null);
+      await saveAccountDefaultSource(source || null);
       onClose();
-    } catch {
-      setError('浏览器未能保存设置，请检查存储权限后重试');
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : '默认播放源保存失败，请重试'
+      );
+    } finally {
+      setSaving(false);
     }
   };
   return createPortal(
@@ -285,8 +297,11 @@ export default function DefaultSourceDialog({
           </fieldset>
         </div>
         <p className='mt-4 text-xs leading-relaxed text-gray-500'>
-          接口测速最多缓存 60
-          秒，实际播放速度以影片测速为准。设置仅保存在当前浏览器，按账号分别保存。临时换源不会修改默认源；继续观看优先使用上次播放源。
+          接口测速最多缓存 60 秒，实际播放速度以影片测速为准。
+          {accountDefaultSourceEnabled()
+            ? '设置同步到当前账号，管理员也可调整。'
+            : '当前模式仅保存在本浏览器。'}
+          临时换源不会修改默认源；继续观看优先使用上次播放源。
         </p>
         <div className='mt-4 flex justify-end gap-2 border-t border-white/10 pt-4'>
           <button
@@ -296,11 +311,11 @@ export default function DefaultSourceDialog({
             取消
           </button>
           <button
-            disabled={loading || unavailable}
+            disabled={loading || unavailable || saving}
             onClick={save}
             className='rounded-lg bg-green-400 px-4 py-2 text-sm font-semibold text-gray-950 disabled:opacity-40'
           >
-            保存设置
+            {saving ? '正在保存…' : '保存设置'}
           </button>
         </div>
       </div>
