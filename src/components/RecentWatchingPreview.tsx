@@ -96,14 +96,28 @@ export default function RecentWatchingPreview({
                   <span className='mt-1.5 block truncate text-sm font-medium text-gray-100 group-hover:text-green-300'>
                     {resource.title}
                   </span>
-                  <span className='mt-1 block truncate text-[11px] text-gray-500'>
-                    {resource.totalEpisodes > 1
-                      ? `看到第 ${resource.episode} 集 · `
-                      : ''}
-                    {new Date(resource.watchedAt).toLocaleDateString('zh-CN', {
-                      month: 'numeric',
-                      day: 'numeric',
-                    })}
+                  <span className='mt-1 block text-[11px] text-gray-500'>
+                    {resource.totalEpisodes > 1 && (
+                      <span className='block'>
+                        看到第 {resource.episode} 集
+                      </span>
+                    )}
+                    <time
+                      className='block whitespace-nowrap'
+                      dateTime={new Date(resource.watchedAt).toISOString()}
+                      title={new Date(resource.watchedAt).toLocaleString(
+                        'zh-CN',
+                        { hour12: false }
+                      )}
+                    >
+                      {new Date(resource.watchedAt).toLocaleString('zh-CN', {
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      })}
+                    </time>
                   </span>
                 </span>
                 <ChevronRight className='h-4 w-4 shrink-0 text-gray-600 group-hover:text-green-400' />
