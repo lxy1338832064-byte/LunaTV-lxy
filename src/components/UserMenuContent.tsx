@@ -24,6 +24,7 @@ import { CURRENT_VERSION } from '@/lib/version';
 import { checkForUpdates, UpdateStatus } from '@/lib/version_check';
 
 const DefaultSourceDialog = dynamic(() => import('./DefaultSourceDialog'));
+const AppearanceDialog = dynamic(() => import('./AppearanceDialog'));
 
 const VersionPanel = dynamic(() =>
   import('./VersionPanel').then((module) => module.VersionPanel)
@@ -42,6 +43,7 @@ export default function UserMenuContent({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(initialOpen);
   const [isDefaultSourceOpen, setIsDefaultSourceOpen] = useState(false);
+  const [isAppearanceOpen, setIsAppearanceOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
   const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
@@ -556,6 +558,16 @@ export default function UserMenuContent({
           >
             <Radio className='h-4 w-4 text-green-500' />
             <span className='font-medium'>默认播放源</span>
+          </button>
+          <button
+            onClick={() => {
+              setIsOpen(false);
+              setIsAppearanceOpen(true);
+            }}
+            className='flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm text-gray-300 hover:bg-gray-800'
+          >
+            <span aria-hidden='true'>🎀</span>
+            <span className='font-medium'>外观风格</span>
           </button>
           {/* 设置按钮 */}
           <button
@@ -1173,6 +1185,9 @@ export default function UserMenuContent({
 
       {isDefaultSourceOpen && (
         <DefaultSourceDialog onClose={() => setIsDefaultSourceOpen(false)} />
+      )}
+      {isAppearanceOpen && (
+        <AppearanceDialog onClose={() => setIsAppearanceOpen(false)} />
       )}
 
       {/* 版本面板 */}

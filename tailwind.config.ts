@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import colors from 'tailwindcss/colors';
 import defaultTheme from 'tailwindcss/defaultTheme';
 
 const gold = {
@@ -33,6 +34,14 @@ const config: Config = {
         primary: ['Inter', ...defaultTheme.fontFamily.sans],
       },
       colors: {
+        green: Object.fromEntries(
+          Object.entries(colors.green).map(([shade, hex]) => [
+            shade,
+            `rgb(var(--accent-${shade}, ${[1, 3, 5]
+              .map((start) => parseInt(hex.slice(start, start + 2), 16))
+              .join(' ')}) / <alpha-value>)`,
+          ])
+        ),
         gold,
         primary: {
           50: '#ecfdf5',
@@ -48,17 +57,17 @@ const config: Config = {
           950: '#022c1d',
         },
         gray: {
-          50: '#fafafa',
-          100: '#f0f1f2',
-          200: '#d9dbde',
-          300: '#bfc2c7',
-          400: '#969ba3',
-          500: '#727880',
-          600: '#515760',
-          700: '#343941',
-          800: '#24282e',
-          900: '#181b20',
-          950: '#101214',
+          50: 'rgb(var(--gray-50, 250 250 250) / <alpha-value>)',
+          100: 'rgb(var(--gray-100, 240 241 242) / <alpha-value>)',
+          200: 'rgb(var(--gray-200, 217 219 222) / <alpha-value>)',
+          300: 'rgb(var(--gray-300, 191 194 199) / <alpha-value>)',
+          400: 'rgb(var(--gray-400, 150 155 163) / <alpha-value>)',
+          500: 'rgb(var(--gray-500, 114 120 128) / <alpha-value>)',
+          600: 'rgb(var(--gray-600, 81 87 96) / <alpha-value>)',
+          700: 'rgb(var(--gray-700, 52 57 65) / <alpha-value>)',
+          800: 'rgb(var(--gray-800, 36 40 46) / <alpha-value>)',
+          900: 'rgb(var(--gray-900, 24 27 32) / <alpha-value>)',
+          950: 'rgb(var(--gray-950, 16 18 20) / <alpha-value>)',
         },
         dark: '#101214',
       },

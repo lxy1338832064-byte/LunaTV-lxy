@@ -5,7 +5,10 @@ import { Inter } from 'next/font/google';
 
 import './globals.css';
 
+import { appearanceBootstrap } from '@/lib/appearance';
 import { getConfig } from '@/lib/config';
+
+import { AppearanceProvider } from '@/components/AppearanceProvider';
 
 import { GlobalErrorIndicator } from '../components/GlobalErrorIndicator';
 import { NavigationProvider } from '../components/NavigationProvider';
@@ -97,8 +100,16 @@ export default async function RootLayout({
   };
 
   return (
-    <html lang='zh-CN' suppressHydrationWarning>
+    <html
+      lang='zh-CN'
+      data-appearance='kitty'
+      data-accent='rose'
+      suppressHydrationWarning
+    >
       <head>
+        <meta name='theme-color' content='#fff5f9' />
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script dangerouslySetInnerHTML={{ __html: appearanceBootstrap }} />
         <meta
           name='viewport'
           content='width=device-width, initial-scale=1.0, viewport-fit=cover'
@@ -127,10 +138,12 @@ export default async function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <SiteProvider siteName={siteName} announcement={announcement}>
-            <NavigationProvider>{children}</NavigationProvider>
-            <GlobalErrorIndicator />
-          </SiteProvider>
+          <AppearanceProvider>
+            <SiteProvider siteName={siteName} announcement={announcement}>
+              <NavigationProvider>{children}</NavigationProvider>
+              <GlobalErrorIndicator />
+            </SiteProvider>
+          </AppearanceProvider>
         </ThemeProvider>
       </body>
     </html>

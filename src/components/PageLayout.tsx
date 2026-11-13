@@ -3,6 +3,7 @@
 import { useCallback, useState } from 'react';
 
 import { BackButton } from './BackButton';
+import KittyWelcome from './KittyWelcome';
 import MobileBottomNav from './MobileBottomNav';
 import MobileHeader from './MobileHeader';
 import PlaybackNavigationDrawer from './PlaybackNavigationDrawer';
@@ -75,6 +76,7 @@ const PageLayout = ({ children, activePath = '/' }: PageLayoutProps) => {
               playbackLayout ? '2xl:mt-0' : 'md:mt-0'
             }`}
           >
+            {activePath === '/' && <KittyWelcome />}
             {children}
           </main>
         </div>

@@ -377,3 +377,343 @@ html.dark body {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* Appearance tokens are scoped to Kitty; classic retains its original palette. */
+html[data-appearance='kitty'] {
+  color-scheme: light;
+  --gray-50: 255 242 248;
+  --gray-100: 68 32 53;
+  --gray-200: 83 42 62;
+  --gray-300: 105 54 79;
+  --gray-400: 127 66 95;
+  --gray-500: 149 83 114;
+  --gray-600: 166 105 132;
+  --gray-700: 233 183 204;
+  --gray-800: 253 229 239;
+  --gray-900: 255 250 253;
+  --gray-950: 255 245 249;
+  --accent-50: 255 241 247;
+  --accent-100: 255 224 237;
+  --accent-200: 255 190 217;
+  --accent-300: 187 46 103;
+  --accent-400: 204 49 113;
+  --accent-500: 213 60 126;
+  --accent-600: 184 36 99;
+  --accent-700: 155 29 80;
+  --accent-800: 130 27 70;
+  --accent-900: 102 22 55;
+  --accent-950: 69 14 36;
+}
+html[data-appearance='kitty'][data-accent='lilac'] {
+  --accent-300: 139 72 172;
+  --accent-400: 145 65 179;
+  --accent-500: 153 75 186;
+  --accent-600: 126 49 159;
+  --accent-700: 105 35 137;
+}
+html[data-appearance='kitty'][data-accent='peach'] {
+  --accent-300: 181 74 71;
+  --accent-400: 192 69 76;
+  --accent-500: 203 78 84;
+  --accent-600: 171 48 60;
+  --accent-700: 145 40 49;
+}
+html[data-appearance='kitty'] body {
+  background: radial-gradient(circle at 1px 1px, #efb7d033 1px, transparent 0) 0
+      0 / 20px 20px,
+    linear-gradient(135deg, #fff7fb, #fff0f6 60%, #fff9f1);
+  color: #532a3e;
+}
+html[data-appearance='kitty'] .lux-shell {
+  background: transparent;
+}
+html[data-appearance='kitty'] [data-sidebar],
+html[data-appearance='kitty'] header {
+  background-color: #fff9fcee;
+  border-color: #edc8d9;
+}
+html[data-appearance='kitty'] [data-sidebar] a[data-active='true'] {
+  background: #fce0ed;
+  color: rgb(var(--accent-400));
+  border-radius: 14px;
+}
+html[data-appearance='kitty'] [data-sidebar] a[data-active='true']::before {
+  background: rgb(var(--accent-400));
+}
+html[data-appearance='kitty'] [data-sidebar] a[data-active='true'] svg,
+html[data-appearance='kitty'] .lux-brand {
+  color: rgb(var(--accent-400));
+}
+html[data-appearance='kitty'] .lux-brand::before {
+  content: '';
+  display: inline-block;
+  width: 26px;
+  height: 24px;
+  margin-right: 5px;
+  vertical-align: middle;
+  background: url('/kitty-mark.svg') center/contain no-repeat;
+}
+html[data-appearance='kitty'] .lux-title {
+  color: #532a3e;
+}
+html[data-appearance='kitty'] .lux-panel,
+html[data-appearance='kitty'] .playback-sidebar,
+html[data-appearance='kitty'] [class*='bg-[#1'],
+html[data-appearance='kitty'] [class*='bg-[#0'],
+html[data-appearance='kitty'] [class*='bg-[#2'] {
+  background-color: #fffafdf5 !important;
+  border-color: #edc8d9;
+}
+html[data-appearance='kitty'] .lux-input {
+  background: #fffafd;
+  border-color: #e8bdd1;
+}
+html[data-appearance='kitty'] .lux-tab-indicator {
+  background: #f9d9e8;
+}
+html[data-appearance='kitty'] .lux-primary,
+html[data-appearance='kitty'] .lux-progress {
+  background: rgb(var(--accent-400));
+  color: white;
+}
+html[data-appearance='kitty'] .lux-navigation {
+  background: #ffedf5;
+  color: #9e3564;
+  border-color: #dc8fb1;
+}
+html[data-appearance='kitty']
+  .text-white:not(.portal-hero *):not(.art-video-player *):not(
+    [class*='bg-black'] *
+  ):not([class*='bg-green-']) {
+  color: #532a3e;
+}
+html[data-appearance='kitty'] [class*='border-white/'] {
+  border-color: #e8bdd1;
+}
+html[data-appearance='kitty'] [class*='bg-white/'],
+html[data-appearance='kitty'] [class*='bg-white/['] {
+  background-color: #fceaf2;
+}
+html[data-appearance='kitty'] .portal-hero {
+  border: 1px solid #e8bdd1;
+  border-radius: 24px;
+  box-shadow: 0 12px 35px #b5467815;
+}
+html[data-appearance='kitty'] .portal-hero .text-gray-100,
+html[data-appearance='kitty'] .portal-hero .text-gray-200,
+html[data-appearance='kitty'] .portal-hero .text-gray-400,
+html[data-appearance='kitty'] .portal-hero .text-gray-300 {
+  color: #fbe6f0;
+}
+html[data-appearance='kitty'] .art-video-player {
+  --art-theme: #e96c9f !important;
+  color: #fff;
+  color-scheme: dark;
+}
+html[data-appearance='kitty'] .art-video-player [class*='bg-white/'] {
+  background: inherit;
+}
+.appearance-kitty-preview {
+  background: radial-gradient(circle at 20% 20%, #fff, transparent 55%), #fbd8e8;
+}
+.appearance-classic-preview {
+  background: #101214;
+  color: #00dc82;
+}
+.kitty-emblem {
+  width: 100px;
+  height: 85px;
+  background: url('/kitty-mark.svg') center/contain no-repeat;
+}
+html[data-appearance='kitty'] .portal-hero::after {
+  background: linear-gradient(
+      90deg,
+      #fff2f8 0%,
+      #fff2f8ef 24%,
+      #fff2f840 66%,
+      #fff2f810 100%
+    ),
+    linear-gradient(0deg, #fff2f8, transparent 50%);
+}
+html[data-appearance='kitty'] .portal-hero::before {
+  content: '';
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 52px;
+  height: 45px;
+  background: url('/kitty-mark.svg') center/contain no-repeat;
+  z-index: 2;
+  pointer-events: none;
+}
+html[data-appearance='kitty'] [aria-label='精选推荐'] .text-white,
+html[data-appearance='kitty'] .portal-hero .text-gray-100,
+html[data-appearance='kitty'] .portal-hero .text-gray-200,
+html[data-appearance='kitty'] .portal-hero .text-gray-300,
+html[data-appearance='kitty'] .portal-hero .text-gray-400 {
+  color: #60384e;
+}
+html[data-appearance='kitty'] .portal-video-grid [class*='bg-gray-950'] {
+  background: #60384e;
+}
+html[data-appearance='kitty'] [aria-label='各接口状态'] [class*='bg-green-'] {
+  background-color: #57a66d;
+}
+html[data-appearance='kitty'] [aria-label='各接口状态'] [class*='text-green-'] {
+  color: #327947;
+}
+html[data-appearance='kitty'] .lux-section-title::after {
+  content: '♡';
+  color: #de80a7;
+  margin-left: 4px;
+}
+
+html[data-appearance='kitty']
+  .portal-video-grid
+  [class*='bg-black']
+  .text-white {
+  color: white;
+}
+html[data-appearance='kitty'] .portal-hero button .text-white {
+  color: inherit;
+}
+
+/* Character-led Kitty details; entirely absent from classic mode. */
+.kitty-welcome {
+  display: none;
+}
+html[data-appearance='kitty'] .kitty-welcome {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-height: 112px;
+  margin: 12px 32px 0;
+  padding: 12px 26px;
+  border: 1px solid #efbfd5;
+  border-radius: 24px;
+  background: url('/kitty-pattern.svg') right center/180px,
+    linear-gradient(110deg, #fffafd, #ffe1ee);
+  box-shadow: 0 6px 24px #c4558a0c;
+  overflow: hidden;
+}
+.kitty-welcome-character {
+  width: 78px;
+  height: 100px;
+  flex-shrink: 0;
+  background: url('/kitty-character.svg') center/contain no-repeat;
+}
+.kitty-welcome-kicker {
+  display: block;
+  color: #ad4976;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  font-weight: 700;
+}
+.kitty-welcome p {
+  margin: 4px 0;
+  color: #793951;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.kitty-welcome-note {
+  color: #a56c86;
+  font-size: 12px;
+}
+.kitty-welcome-bow {
+  margin-left: auto;
+  width: 76px;
+  height: 52px;
+  background: url('/kitty-bow.svg') center/contain no-repeat;
+  transform: rotate(12deg);
+}
+html[data-appearance='kitty'] body {
+  background-image: url('/kitty-pattern.svg'),
+    linear-gradient(135deg, #fff7fb, #fff0f6 60%, #fff9f1);
+  background-size: 240px, auto;
+}
+html[data-appearance='kitty'] [data-sidebar]::after {
+  content: '';
+  position: absolute;
+  bottom: 22px;
+  left: 12px;
+  width: 130px;
+  height: 165px;
+  max-width: calc(100% - 24px);
+  background: url('/kitty-character.svg') center bottom/contain no-repeat;
+  pointer-events: none;
+}
+html[data-appearance='kitty'] .portal-hero::before {
+  width: 105px;
+  height: 135px;
+  top: auto;
+  bottom: 26px;
+  right: 28px;
+  background-image: url('/kitty-character.svg');
+  filter: drop-shadow(0 4px 8px #b95b8d30);
+}
+html[data-appearance='kitty'] .lux-section-title::after {
+  content: '';
+  display: inline-block;
+  width: 32px;
+  height: 23px;
+  background: url('/kitty-bow.svg') center/contain no-repeat;
+}
+html[data-appearance='kitty'] .playback-sidebar {
+  background-image: url('/kitty-pattern.svg');
+  background-size: 200px;
+}
+html[data-appearance='kitty']
+  .playback-sidebar
+  [role='tab'][aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 14px;
+  right: 5px;
+  top: 4px;
+  background: url('/kitty-bow.svg') center/contain no-repeat;
+}
+html[data-appearance='kitty'] .playback-sidebar [role='tab'] {
+  position: relative;
+}
+@media (max-width: 767px) {
+  html[data-appearance='kitty'] .kitty-welcome {
+    margin: 10px 12px 0;
+    padding: 10px 12px;
+    gap: 10px;
+    min-height: 100px;
+  }
+  .kitty-welcome-character {
+    width: 56px;
+    height: 80px;
+  }
+  .kitty-welcome p {
+    font-size: 16px;
+  }
+  .kitty-welcome-kicker {
+    font-size: 8px;
+    letter-spacing: 0.07em;
+  }
+  .kitty-welcome-note {
+    font-size: 10px;
+  }
+  .kitty-welcome-bow {
+    width: 34px;
+    height: 30px;
+    flex-shrink: 0;
+  }
+  html[data-appearance='kitty'] .portal-hero::before {
+    width: 68px;
+    height: 86px;
+    right: 15px;
+    bottom: 16px;
+  }
+}
+@media (max-height: 700px) {
+  html[data-appearance='kitty'] [data-sidebar]::after {
+    height: 90px;
+    opacity: 0.65;
+  }
+}
