@@ -1,12 +1,31 @@
 import {
   createPlaybackAutomation,
   PlaybackAction,
+  readPlaybackState,
 } from './playback-automation';
 
 beforeEach(() => jest.useFakeTimers());
 afterEach(() => {
   jest.clearAllTimers();
   jest.useRealTimers();
+});
+
+test('an Artplayer-shaped object reads pause state from its video and actually skips', () => {
+  const player = { video: { currentTime: 1, duration: 1800, paused: false } };
+  const a = setup({
+    read: () => readPlaybackState(player),
+    seek: (time) => {
+      player.video.currentTime = time;
+    },
+  });
+  expect('paused' in player).toBe(false);
+  expect(readPlaybackState(player).paused).toBe(false);
+  a.engine.tick();
+  jest.advanceTimersByTime(3000);
+  expect(player.video.currentTime).toBe(90);
+  player.video.paused = true;
+  expect(readPlaybackState(player).paused).toBe(true);
+  expect(readPlaybackState(null).paused).toBe(true);
 });
 function setup(
   overrides: Partial<Parameters<typeof createPlaybackAutomation>[0]> = {}

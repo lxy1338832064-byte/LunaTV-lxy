@@ -1,5 +1,19 @@
 import type { SkipConfig } from './types';
 
+// Artplayer exposes `playing`, while `paused` belongs to its native video.
+// Reading player.paused would yield undefined and suppress every skip action.
+export function readPlaybackState(
+  player: {
+    video?: Pick<HTMLVideoElement, 'currentTime' | 'duration' | 'paused'>;
+  } | null
+) {
+  return {
+    time: player?.video?.currentTime || 0,
+    duration: player?.video?.duration || 0,
+    paused: player?.video?.paused ?? true,
+  };
+}
+
 export type PlaybackAction = {
   kind: 'intro' | 'outro' | 'next';
   seconds: number;

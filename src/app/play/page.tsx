@@ -22,6 +22,7 @@ import {
   saveSkipConfig,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
+import { readPlaybackState } from '@/lib/playback-automation';
 import { enrichPlaybackDetail } from '@/lib/playback-detail';
 import { createPlaybackLoader } from '@/lib/playback-loader';
 import { readResume } from '@/lib/playback-node';
@@ -1004,7 +1005,7 @@ function PlayPageClient() {
     const d = detailRef.current;
     const idx = currentEpisodeIndexRef.current;
     if (d && d.episodes && idx > 0) {
-      if (artPlayerRef.current && !artPlayerRef.current.paused) {
+      if (artPlayerRef.current && !artPlayerRef.current.video?.paused) {
         saveCurrentPlayProgress();
       }
       resumeTimeRef.current = 0;
@@ -1036,11 +1037,7 @@ function PlayPageClient() {
       config: skipConfig,
       autoNext,
       hasNext: currentEpisodeIndex < totalEpisodes - 1,
-      read: () => ({
-        time: artPlayerRef.current?.currentTime || 0,
-        duration: artPlayerRef.current?.duration || 0,
-        paused: artPlayerRef.current?.paused ?? true,
-      }),
+      read: () => readPlaybackState(artPlayerRef.current),
       seek: (seconds) => {
         if (artPlayerRef.current) artPlayerRef.current.currentTime = seconds;
       },
@@ -1205,7 +1202,7 @@ function PlayPageClient() {
         releaseWakeLock();
       } else if (document.visibilityState === 'visible') {
         // 页面重新可见时，如果正在播放则重新请求 Wake Lock
-        if (artPlayerRef.current && !artPlayerRef.current.paused) {
+        if (artPlayerRef.current && !artPlayerRef.current.video?.paused) {
           requestWakeLock();
         }
       }
@@ -1567,7 +1564,7 @@ function PlayPageClient() {
         setError(null);
 
         // 播放器就绪后，如果正在播放则请求 Wake Lock
-        if (artPlayerRef.current && !artPlayerRef.current.paused) {
+        if (artPlayerRef.current && !artPlayerRef.current.video?.paused) {
           requestWakeLock();
         }
       });
@@ -1584,7 +1581,7 @@ function PlayPageClient() {
       });
 
       // 如果播放器初始化时已经在播放状态，则请求 Wake Lock
-      if (artPlayerRef.current && !artPlayerRef.current.paused) {
+      if (artPlayerRef.current && !artPlayerRef.current.video?.paused) {
         requestWakeLock();
       }
 

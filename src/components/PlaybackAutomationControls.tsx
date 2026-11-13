@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { SkipConfig } from '@/lib/types';
 
@@ -20,6 +20,7 @@ export default function PlaybackAutomationControls({
   const [intro, setIntro] = useState(String(Math.round(config.intro_time)));
   const [outro, setOutro] = useState(String(Math.round(-config.outro_time)));
   const [message, setMessage] = useState('');
+  const details = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
     setIntro(String(Math.round(config.intro_time)));
     setOutro(String(Math.round(-config.outro_time)));
@@ -29,13 +30,14 @@ export default function PlaybackAutomationControls({
     if (
       !Number.isFinite(first) ||
       !Number.isFinite(last) ||
+      (first === 0 && last === 0) ||
       first < 0 ||
       last < 0 ||
       first > 600 ||
       last > 600 ||
       (duration > 0 && first + last + 30 >= duration)
     ) {
-      setMessage('请设置 0–600 秒，并至少保留 30 秒正片。');
+      setMessage('请设置 0–600 秒，至少一项大于 0，并保留至少 30 秒正片。');
       return;
     }
     onConfig({
@@ -75,7 +77,14 @@ export default function PlaybackAutomationControls({
           role='switch'
           aria-checked={config.enable}
           aria-label='自动跳过片头片尾'
-          onClick={() => onConfig({ ...config, enable: !config.enable })}
+          onClick={() => {
+            if (!config.enable && !config.intro_time && !config.outro_time) {
+              if (details.current) details.current.open = true;
+              setMessage('请先设置片头或片尾时长，也可以点击 90 秒模板。');
+              return;
+            }
+            onConfig({ ...config, enable: !config.enable });
+          }}
           className={`relative h-5 w-9 rounded-full ${
             config.enable ? 'bg-green-400' : 'bg-gray-700'
           }`}
@@ -87,7 +96,7 @@ export default function PlaybackAutomationControls({
           />
         </button>
       </div>
-      <details className='mt-2 text-xs text-gray-400'>
+      <details ref={details} className='mt-2 text-xs text-gray-400'>
         <summary className='cursor-pointer text-green-300'>
           设置跳过时长 · {config.intro_time}s / {-config.outro_time}s
         </summary>
