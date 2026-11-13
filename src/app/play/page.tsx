@@ -1863,7 +1863,7 @@ function PlayPageClient() {
 
   return (
     <PageLayout activePath='/play'>
-      <div className='flex flex-col gap-3 py-4 px-5 lg:px-[3rem] 2xl:px-20'>
+      <div className='flex flex-col gap-3 px-3 py-3 sm:px-5 lg:px-[3rem] lg:py-4 2xl:px-20'>
         {playbackProblem && (
           <div
             role='alert'
@@ -1891,7 +1891,7 @@ function PlayPageClient() {
         )}
         {/* 第一行：影片标题 */}
         <div className='py-1'>
-          <h1 className='text-xl font-semibold text-gray-900 dark:text-gray-100'>
+          <h1 className='text-base font-semibold text-gray-900 dark:text-gray-100 sm:text-xl'>
             {videoTitle || '影片标题'}
             {totalEpisodes > 1 && (
               <span className='text-gray-500 dark:text-gray-400'>
@@ -1959,7 +1959,7 @@ function PlayPageClient() {
                 isEpisodeSelectorCollapsed ? 'col-span-1' : 'min-w-0'
               }`}
             >
-              <div className='relative w-full h-[300px] lg:h-full'>
+              <div className='relative aspect-video w-full lg:aspect-auto lg:h-full'>
                 <div
                   ref={artRef}
                   className='bg-black w-full h-full rounded-xl overflow-hidden shadow-lg'

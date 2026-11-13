@@ -4,6 +4,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react';
 
 import { getDefaultSource, saveDefaultSource } from '@/lib/default-source';
@@ -63,6 +64,49 @@ test('episodes and sources are visible together, with existing selection callbac
   expect(sourceChange).toHaveBeenCalledWith('b', 'b', '测试影片');
   await waitFor(() => expect(measurePlaybackNode).toHaveBeenCalledTimes(4));
   expect(sources.map((source) => source.id)).toEqual(['a', 'b', 'c', 'd']);
+});
+
+test('mobile shortcuts reveal the requested section and preserve playback state', async () => {
+  const scroll = jest.fn();
+  const previousScroll = HTMLElement.prototype.scrollIntoView;
+  HTMLElement.prototype.scrollIntoView = scroll;
+  const change = jest.fn();
+  try {
+    render(
+      <EpisodeSelector
+        totalEpisodes={3}
+        episodes_titles={[]}
+        value={2}
+        currentSource='a'
+        currentId='a'
+        availableSources={sources}
+        onChange={change}
+        playbackControls={<section aria-label='智能播放'>播放配置</section>}
+      />
+    );
+    const shortcuts = screen.getByRole('navigation', { name: '播放快捷操作' });
+    fireEvent.click(
+      within(shortcuts).getByRole('button', { name: '切换播放源' })
+    );
+    expect(document.activeElement).toBe(
+      screen.getByRole('region', { name: '播放源' })
+    );
+    fireEvent.click(within(shortcuts).getByRole('button', { name: /选集/ }));
+    expect(document.activeElement).toBe(
+      screen.getByRole('region', { name: '选集' })
+    );
+    fireEvent.click(within(shortcuts).getByRole('button', { name: /设置/ }));
+    expect(document.activeElement).toContainElement(
+      screen.getByRole('region', { name: '智能播放' })
+    );
+    expect(scroll).toHaveBeenCalledTimes(3);
+    expect(change).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '重新测速' })).toBeEnabled()
+    );
+  } finally {
+    HTMLElement.prototype.scrollIntoView = previousScroll;
+  }
 });
 
 test('automatic probes use the current episode, stay bounded and abort on episode change', async () => {
